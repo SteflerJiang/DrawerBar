@@ -2,6 +2,8 @@
 
 [简体中文](README.zh-CN.md) · **English**
 
+**[Download DMG](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.10/DrawerBar-0.1.10-AppleSilicon.dmg>)** · **[Download ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.10/DrawerBar-0.1.10-arm64.zip>)** · [v0.1.10 preview notes](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.10)
+
 A small drawer for your Mac's menu bar. Keep everyday icons visible and tuck less-used ones into a single-row drawer.
 
 Native SwiftUI + AppKit. Built for Apple Silicon. English and Simplified Chinese. No account, telemetry, cloud service, or third-party runtime dependencies.
@@ -10,7 +12,7 @@ Native SwiftUI + AppKit. Built for Apple Silicon. English and Simplified Chinese
 
 ## Download
 
-Go to [Releases](https://github.com/SteflerJiang/DrawerBar/releases) and select a published **prerelease**. Download its `DrawerBar-<version>-AppleSilicon.dmg` or `DrawerBar-<version>-arm64.zip`, then follow the release-specific notes. If there are no binary assets, [build from source](#build-from-source). GitHub's automatic “Source code” archives contain source, not an installable app.
+The current developer preview is **v0.1.10**. Use the **Download DMG / Download ZIP** links above, or visit its [release page](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.10). If GitHub’s Assets section stays on “Loading”, the direct links above bypass that section. GitHub’s automatic “Source code” archives contain source, not an installable app. You can also [build from source](#build-from-source).
 
 Previews use an ad-hoc signature. They are **not Developer ID signed or notarized by Apple**. Do not assume CI build success means native interaction tests passed. There is no automatic updater, App Store distribution, Homebrew cask, or Intel build.
 

@@ -2,6 +2,8 @@
 
 **简体中文** · [English](README.md)
 
+**[下载 DMG 安装包（推荐）](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.10/DrawerBar-0.1.10-AppleSilicon.dmg>)** · **[下载 ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.10/DrawerBar-0.1.10-arm64.zip>)** · [v0.1.10 预览版说明](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.10)
+
 给 Mac 菜单栏加一个小抽屉。常用图标留在外面，偶尔用的收进单行浮栏。
 
 原生 SwiftUI + AppKit，面向 Apple Silicon，支持简体中文和英文。无账号、遥测、云服务或第三方运行时依赖。
@@ -10,7 +12,7 @@
 
 ## 下载
 
-进入 [Releases 下载页](https://github.com/SteflerJiang/DrawerBar/releases)，选择已发布的 **预览版（prerelease）**，下载 `DrawerBar-版本号-AppleSilicon.dmg` 或 `DrawerBar-版本号-arm64.zip`，并阅读对应版本说明。若尚无二进制附件，可按下文[源码构建](#源码构建)。GitHub 自动提供的“Source code”是源码压缩包，不是安装包。
+当前可下载版本为 **v0.1.10 开发预览版**。直接点击页首的 **下载 DMG 安装包 / 下载 ZIP**，或进入[对应版本页](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.10)。如果 GitHub 底部的 Assets 区块一直显示 Loading，页首的直达链接仍可使用。GitHub 自动提供的“Source code”是源码压缩包，不是安装包；也可按下文[源码构建](#源码构建)。
 
 预览版使用临时签名，**没有 Developer ID 签名，也没有经过 Apple 公证**。CI 构建通过不代表真实菜单栏交互已通过验收。目前无自动更新、App Store、Homebrew 或 Intel 版本。
 

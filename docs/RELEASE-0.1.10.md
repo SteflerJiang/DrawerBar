@@ -1,3 +1,13 @@
+## 下载安装 / Download
+
+**[下载 DMG（推荐） / Download DMG](https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.10/DrawerBar-0.1.10-AppleSilicon.dmg)** · **[下载 ZIP / Download ZIP](https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.10/DrawerBar-0.1.10-arm64.zip)**
+
+Apple Silicon（M1 或更新）· macOS 14+ · **预览版 / Developer preview**。当前未经过 Apple 公证，已知限制见下文。
+
+If the Assets section stays on “Loading”, use the direct links above. 如果底部 Assets 一直显示 Loading，请直接点击上面的下载链接。
+
+---
+
 # DrawerBar / 小屉 0.1.10 — Bilingual Developer Preview
 
 **English** · 简体中文 below
