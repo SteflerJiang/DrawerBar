@@ -1,0 +1,12 @@
+小屉应用图标
+
+构思：蓝色圆角底，白色拉开的小抽屉，对应“把菜单栏图标收进小屉”。
+文件：小屉-Logo.png（透明背景原图）；小屉.icns（macOS 应用图标）。
+使用内置 image_gen 工具生成，并在首版基础上去掉顶部圆点、简化抽屉形态。原图透明通道保留；ICNS 仅作标准尺寸转换。
+
+完整生成提示词：
+{
+  "mode": "built-in image_gen",
+  "initial": "Use case: logo-brand. Asset type: final macOS application icon for 小屉, a minimal Apple Silicon menu bar organizer. Create ONE polished standalone app icon, not a presentation or icon grid. Primary mark: a small ivory-white drawer, slightly pulled open, with a single simple recessed pull; clear recognizable drawer silhouette, a restrained suggestion of a tidy horizontal menu bar above it integrated into the same drawer form. Native macOS utility character: calm, friendly, precise, beautifully proportioned, very subtle sculpted depth and soft self-shadow, mostly clean graphic shapes. Place the mark large and centered on a rich system-blue rounded-square squircle tile, matching a light native macOS product with blue accents. Preserve strong light/dark contrast, bold simple edges and generous breathing space so it reads at 32px. Square 1024x1024 master artwork. Transparent alpha outside the rounded tile. No typography, no Chinese characters, no letters, no watermark, no tiny app icons inside the drawer, no badges, no scene, no desk, no mockup device, no multiple variants, no heavy glass effects or flashy rainbow gradients.",
+  "refinement": "Use case: precise-object-edit, logo-brand. Refine this image into the final macOS app icon for 小屉, a menu bar organizer. Preserve the centered ivory open drawer, the blue rounded-square tile, the large simple proportions and the transparent surrounding background. Make the mark unmistakably a little open drawer rather than a printer: remove the three round blue dots on the upper housing and simplify that housing to a clean drawer cabinet top. Keep the single recessed pull on the front. Reduce decorative glows. Correct the entire outer blue tile boundary into one perfectly smooth continuous anti-aliased rounded-square squircle: remove every stray blue/cyan speck, jagged halo, isolated pixel and irregular bump outside the tile. Outside the tile must be clean real transparent alpha. Calm high-contrast native Mac utility icon with restrained depth, crisp large shapes, legible at small sizes. One standalone square icon, no text, no letters, no watermark, no presentation background, no extra objects."
+}

@@ -1,0 +1,4 @@
+"CFBundleName" = "DrawerBar";
+"CFBundleDisplayName" = "DrawerBar";
+"NSScreenCaptureUsageDescription" = "Capture menu bar icon images on demand for the local drawer. Images are never saved or uploaded.";
+"NSHumanReadableCopyright" = "2026 DrawerBar contributors";

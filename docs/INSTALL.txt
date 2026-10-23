@@ -1,0 +1,21 @@
+DrawerBar / 小屉 — Developer Preview
+
+Apple Silicon (M1 or newer), macOS 14+.
+Drag the app to Applications, eject this image, and open the installed copy.
+Current previews use an ad-hoc signature, without Developer ID or Apple notarization.
+Review the release/source and checksum before deciding whether to trust it.
+Apple opening instructions: https://support.apple.com/102445
+
+Allow Accessibility in System Settings > Privacy & Security.
+Screen Recording is optional, for original menu bar artwork; otherwise app icons are used.
+Each Mac user must authorize their installed copy. Rebuilds may invalidate prior trust.
+
+Click an icon in Organize Icons to hide/show. Click the drawer or press Command-Shift-Space to open.
+Original click/context menus, single-row hidden icons, pin, auto-close, shortcuts, and spacing presets are available.
+Spacing is saved immediately; running apps on macOS 26 need reopening before their icons update.
+Only explicitly selected apps may be reopened, with user opt-in. No forced quit or logout.
+
+English / 简体中文 follows macOS app language settings. Chinese product name: 小屉.
+Development preview; other macOS versions, notch and multiple-display behavior need further testing.
+No account, telemetry, networking, or automatic update.
+README and release-specific limitations: https://github.com/SteflerJiang/DrawerBar

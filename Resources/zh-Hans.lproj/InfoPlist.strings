@@ -1,0 +1,4 @@
+"CFBundleName" = "小屉";
+"CFBundleDisplayName" = "小屉";
+"NSScreenCaptureUsageDescription" = "仅按需截取菜单栏图标，用于在本机浮栏显示。图像不会保存或上传。";
+"NSHumanReadableCopyright" = "2026 小屉贡献者";

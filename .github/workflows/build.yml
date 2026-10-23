@@ -1,0 +1,40 @@
+name: Build and Check
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  apple-silicon:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: swift --version
+      - name: Core checks
+        run: swift run CoreChecks
+      - name: Localization audit
+        run: python3 scripts/check-localizations.py
+      - name: English and Chinese runtime resources
+        run: |
+          .build/debug/CoreChecks -AppleLanguages '(en)'
+          .build/debug/CoreChecks -AppleLanguages '(zh-Hans)'
+      - name: Build arm64 preview
+        env:
+          APP_BUNDLE_NAME: DrawerBar
+          BUILD_OUTPUT_DIR: ${{ github.workspace }}/dist
+        run: zsh scripts/build.sh
+      - name: Check packaged resources and signature
+        run: |
+          codesign --verify --deep --strict dist/DrawerBar.app
+          test -f dist/DrawerBar.app/Contents/Resources/en.lproj/InfoPlist.strings
+          test -f dist/DrawerBar.app/Contents/Resources/zh-Hans.lproj/InfoPlist.strings
+          test -d dist/DrawerBar.app/Contents/Resources/MenuBarStudio_MenuBarCore.bundle
+          lipo -archs dist/DrawerBar.app/Contents/MacOS/MenuBarStudio
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DrawerBar-arm64-build-not-native-QA
+          path: dist/DrawerBar-arm64.zip
+          retention-days: 14

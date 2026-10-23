@@ -1,0 +1,118 @@
+import Foundation
+import CoreGraphics
+import MenuBarCore
+
+// Standalone checks also run on a Mac with Command Line Tools and no XCTest bundle.
+@main
+enum CoreChecks {
+    static func expect(_ value: @autoclosure () -> Bool, _ message: String) {
+        guard value() else { fatalError("FAIL: \(message)") }
+    }
+    static func main() throws {
+        expect(L10n.text("小屉", language: "en") == "DrawerBar", "English brand comes from packaged resources")
+        expect(L10n.text("小屉", language: "zh-Hans") == "小屉", "Chinese brand remains unchanged")
+        expect(L10n.text("屏幕录制 · 可选", language: "en") == "Screen Recording · Optional", "permission explanation is localized")
+        let formatted = String(format: L10n.text("未能恢复 %@ 的位置：%@", language: "en"), "Example", "Unavailable")
+        expect(formatted == "Could not restore Example: Unavailable", "formatted names and errors survive translation")
+        expect(L10n.text("untranslated-debug-key", language: "en") == "untranslated-debug-key", "missing keys remain diagnosable")
+        print("PASS English and Chinese resources, brand, permissions and format arguments (active: \(L10n.language))")
+        expect(LayoutPolicy.windowID(from: -1) == nil, "hosted status window placeholder must not trap")
+        expect(LayoutPolicy.windowID(from: 0) == nil, "zero window number is not an owned window")
+        expect(LayoutPolicy.windowID(from: Int.max) == nil, "oversized window number must not trap")
+        expect(LayoutPolicy.windowID(from: 42) == 42, "normal window number converts exactly")
+        print("PASS macOS 26 hosted-window placeholders")
+        expect(LayoutPolicy.itemID(bundle: "org.test.Flux", ordinal: 0, previousID: "com.apple.controlcenter#4") == "org.test.Flux#0", "host identity must not survive source resolution")
+        expect(LayoutPolicy.itemID(bundle: "org.test.Flux", ordinal: 1, previousID: "org.test.Flux#0") == "org.test.Flux#0", "known application identity survives window reordering")
+        expect(LayoutPolicy.itemID(bundle: "org.test.Other", ordinal: 0, previousID: "org.test.Flux#0") == "org.test.Other#0", "window reuse cannot inherit another application identity")
+        print("PASS stable source identity instead of Control Center host IDs")
+        expect(LayoutPolicy.prefersDarkIconBackdrop(red: 1, green: 1, blue: 1), "white menu glyphs need a dark backdrop")
+        expect(!LayoutPolicy.prefersDarkIconBackdrop(red: 0, green: 0, blue: 0), "black menu glyphs need a light backdrop")
+        expect(!LayoutPolicy.prefersDarkIconBackdrop(red: 0.15, green: 0.25, blue: 0.4), "dark colored artwork retains a light backdrop")
+        print("PASS light and dark tray artwork contrast choices")
+        let divider = CGRect(x: 273, y: 0, width: 20, height: 26)
+        expect(LayoutPolicy.observedPlacement(item: CGRect(x: 218, y: 0, width: 30, height: 26), divider: divider) == .shelf,
+               "reported ChatGPT left of divider must belong to the shelf despite an old visible rule")
+        expect(LayoutPolicy.observedPlacement(item: CGRect(x: 307, y: 0, width: 30, height: 26), divider: divider) == .visible,
+               "items right of divider stay visible")
+        expect(LayoutPolicy.observedPlacement(item: CGRect(x: 270, y: 0, width: 30, height: 26), divider: divider) == nil,
+               "overlapping frames during a move cannot overwrite a saved rule")
+        expect(LayoutPolicy.observedPlacement(item: CGRect(x: 218, y: 0, width: 30, height: 26),
+                divider: CGRect(x: -9707, y: 0, width: 10000, height: 26)) == nil,
+               "old expanded coordinates cannot classify an item inside the stretched hidden divider")
+        print("PASS observed placement and transitional-frame regression")
+
+        let edge = CGRect(x: 500, y: 0, width: 16, height: 26)
+        let arrow = CGRect(x: 516, y: 0, width: 26, height: 26)
+        let visibleItem = CGRect(x: 542, y: 0, width: 24, height: 26)
+        expect(LayoutPolicy.placementDestination(.visible, divider: edge, entrance: arrow, y: 13).x == 546,
+               "newly shown items insert after the arrow rather than between the divider and arrow")
+        expect(LayoutPolicy.placementDestination(.shelf, divider: edge, entrance: arrow, y: 13).x == 496,
+               "hidden items move to the left of the divider")
+        expect(LayoutPolicy.entranceIsLeading(divider: edge, entrance: arrow, otherItems: [visibleItem]),
+               "arrow remains first in the visible section")
+        expect(!LayoutPolicy.entranceIsLeading(divider: edge, entrance: CGRect(x: 600, y: 0, width: 26, height: 26), otherItems: [visibleItem]),
+               "legacy visible icons left of the arrow require a one-time repair")
+        expect(LayoutPolicy.entranceIsLeading(divider: CGRect(x: -9484, y: 0, width: 10000, height: 26), entrance: arrow, otherItems: [visibleItem]),
+               "leading-arrow validation also works while hidden items are collapsed")
+        print("PASS leading entrance and first visible insertion slot")
+
+        let oneIcon = ShelfLayout(itemCount: 1, availableWidth: 1420)
+        expect(oneIcon.width == 161 && oneIcon.viewportWidth == 42, "single icon keeps its complete 40-point tile and both border insets")
+        let sixIcons = ShelfLayout(itemCount: 6, availableWidth: 1420)
+        expect(sixIcons.width == 401 && !sixIcons.needsHorizontalScrolling, "all six hidden icons fit in one row without a scroll container")
+        let longRow = ShelfLayout(itemCount: 13, availableWidth: 1420)
+        expect(longRow.width == 737 && longRow.height == oneIcon.height && !longRow.needsHorizontalScrolling, "single row can grow beyond the old 620-point cap")
+        let screenLimited = ShelfLayout(itemCount: 30, availableWidth: 1000)
+        expect(screenLimited.width == 1000 && screenLimited.needsHorizontalScrolling && screenLimited.height == oneIcon.height, "physical screen overflow remains a single accessible horizontal row")
+        expect(ShelfLayout(itemCount: 0, availableWidth: 1420).width == 240, "empty state keeps enough room for its message")
+        print("PASS shelf sizing, full first icon, all-hidden single row and screen limits")
+
+        let absent = SpacingSnapshot(spacing: nil, padding: nil)
+        let zero = SpacingSnapshot(spacing: 0, padding: 0)
+        expect(absent != zero, "missing override differs from zero")
+        let roundTrip = try JSONDecoder().decode(SpacingSnapshot.self, from: JSONEncoder().encode(absent))
+        expect(roundTrip == absent && absent.preset == .standard && zero.preset == nil, "absent overrides survive restoration")
+        expect(SpacingSnapshot(spacing: 17, padding: 3).preset == nil, "custom system values are not called default")
+        expect(SpacingSnapshot(spacing: 12, padding: nil).preset == nil, "partial override is preserved")
+        print("PASS spacing snapshot preservation and preset recognition")
+
+        var config = UserConfiguration()
+        config.placements["test#0"] = .shelf
+        config.pendingSpacingUndo = SpacingSnapshot(spacing: nil, padding: 7)
+        let saved = try JSONDecoder().decode(UserConfiguration.self, from: JSONEncoder().encode(config))
+        expect(saved.placement(for: "test#0") == .shelf && saved.placement(for: "new#0") == .visible, "new items stay visible")
+        expect(saved.pendingSpacingUndo?.padding == 7 && saved.pendingSpacingUndo?.spacing == nil, "undo preserves mixed missing values")
+        print("PASS persisted placement rules and undo data")
+        let legacy = Data(#"{"schemaVersion":1,"placements":{},"order":[],"collapseDelay":1.5,"shortcut":"commandShiftSpace","onboardingCompleted":true}"#.utf8)
+        let migrated = try JSONDecoder().decode(UserConfiguration.self, from: legacy)
+        expect(migrated.onboardingCompleted && migrated.identityVersion == nil, "old configuration remains readable before identity migration")
+        print("PASS backward-compatible configuration migration")
+
+        expect(!LayoutPolicy.shouldCollapse(pinned: true, pointerInside: false, nativeMenuOpen: false, elapsed: 100, delay: 1), "fixed shelf stays open")
+        expect(!LayoutPolicy.shouldCollapse(pinned: false, pointerInside: false, nativeMenuOpen: true, elapsed: 100, delay: 1), "native menu interaction is not interrupted")
+        expect(!LayoutPolicy.shouldCollapse(pinned: false, pointerInside: true, nativeMenuOpen: false, elapsed: 100, delay: 1), "pointer inside cancels collapse")
+        expect(!LayoutPolicy.shouldCollapse(pinned: false, pointerInside: false, nativeMenuOpen: false, elapsed: 0.5, delay: 1), "delay is honored")
+        expect(LayoutPolicy.shouldCollapse(pinned: false, pointerInside: false, nativeMenuOpen: false, elapsed: 1.1, delay: 1), "idle shelf closes")
+        print("PASS collapse safeguards")
+
+        expect(LayoutPolicy.sorted(["new1", "b", "a", "new2"], order: ["a", "b"]) == ["a", "b", "new1", "new2"], "new item ordering remains stable")
+        expect(LayoutPolicy.sorted(["a", "b"], order: ["b", "b"]) == ["b", "a"], "duplicate saved IDs are tolerated")
+        expect(LayoutPolicy.sorted(["chat#0", "other#0", "chat#0"], order: []) == ["chat#0", "other#0"], "hosted window replacement cannot duplicate a shelf item")
+        expect(LayoutPolicy.sorted(["chat#0", "chat#1", "chat#0"], order: ["chat#1"]) == ["chat#1", "chat#0"], "distinct items from the same app remain available")
+        print("PASS stable ordering and unique identities during hosted replacement")
+        expect(LayoutPolicy.reordered(["a", "b", "c"], moving: "c", before: "a") == ["c", "a", "b"], "drop over first shelf tile changes ordering")
+        expect(LayoutPolicy.reordered(["a", "b", "c"], moving: "a", before: nil) == ["b", "c", "a"], "background drop appends to shelf")
+        expect(LayoutPolicy.reordered(["a", "b", "c"], moving: "b", before: "b") == ["a", "b", "c"], "drop on itself is a no-op")
+        expect(LayoutPolicy.reordered(["a", "b", "c"], moving: "missing", before: "a") == ["a", "b", "c"], "foreign drag cannot add an item")
+        expect(LayoutPolicy.reordered(["a", "b", "c"], moving: "a", before: "missing") == ["a", "b", "c"], "stale target cannot discard or reorder items")
+        print("PASS shelf drag insertion, append, self-drop and stale identities")
+        var relaunchConfig = UserConfiguration()
+        expect(!relaunchConfig.spacingReloadIsSelected("new-app"), "fresh setup never preselects another app for relaunch")
+        relaunchConfig.spacingReloadExclusions = ["excluded"]
+        expect(relaunchConfig.spacingReloadIsSelected("previously-allowed") && !relaunchConfig.spacingReloadIsSelected("excluded"), "legacy relaunch choices remain readable")
+        relaunchConfig.spacingReloadSelection = ["explicitly-selected"]
+        expect(relaunchConfig.spacingReloadIsSelected("explicitly-selected") && !relaunchConfig.spacingReloadIsSelected("new-app"), "explicit selection does not expand to newly discovered apps")
+        print("PASS explicit relaunch consent and legacy selection migration")
+        print("All core checks passed. No system settings were written.")
+    }
+}
