@@ -19,6 +19,7 @@ struct MenuBarEntry: Identifiable {
     var placement: ItemPlacement
     var canMove: Bool
     var placementVerified = false
+    var shelfWidth: CGFloat { max(18, trayImage?.size.width ?? frame.width) }
 }
 
 @MainActor
@@ -163,6 +164,8 @@ final class MenuBarService {
         for (window, hostPID, rect, title, onScreen) in windows {
             if ownWindows.contains(window) { continue }
             if title.hasPrefix("MenuBarStudio.") { continue }
+            guard LayoutPolicy.participatesInStatusOrdering(windowName: title,
+                hostBundleID: NSRunningApplication(processIdentifier: hostPID)?.bundleIdentifier ?? "") else { continue }
             // Live speed/battery text can shift neighboring windows between the
             // AX sample and WindowServer sample. Choose the nearest safe match.
             let tolerance = max(6, min(12, rect.width * 0.4))
@@ -215,7 +218,7 @@ final class MenuBarService {
     func layoutSignature() -> String? {
         guard let values = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]],
               let edge = statusFrame(named: "MenuBarStudio.Divider", item: divider) else { return nil }
-        return values.compactMap { value -> String? in
+        let sides = values.compactMap { value -> String? in
             guard value[kCGWindowLayer as String] as? Int == Int(CGWindowLevelForKey(.statusWindow)),
                   value[kCGWindowOwnerPID as String] as? Int32 != getpid(),
                   let id = value[kCGWindowNumber as String] as? UInt32,
@@ -225,6 +228,9 @@ final class MenuBarService {
                   let side = LayoutPolicy.observedPlacement(item: frame, divider: edge) else { return nil }
             return "\(id):\(side.rawValue)"
         }.sorted().joined(separator: ",")
+        // Side-of-divider alone misses an app moving through the system group.
+        // Record order violations, not changing traffic-meter widths.
+        return sides + "|protected:" + visibleItemsCrossingProtectedBoundary().sorted().joined(separator: ",")
     }
 
     private func placementObservation(_ entry: MenuBarEntry) -> (frame: CGRect, divider: CGRect, entrance: CGRect, firstVisible: Bool)? {
@@ -269,13 +275,13 @@ final class MenuBarService {
         throw ServiceError.notMoved
     }
 
-    func capture(_ entries: [MenuBarEntry]) async -> [CGWindowID: NSImage] {
+    func capture(_ entries: [MenuBarEntry], force: Bool = false) async -> [CGWindowID: NSImage] {
         guard hasScreenCapture else { return [:] }
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: false)
             var images: [CGWindowID: NSImage] = [:]
-            for entry in entries.filter({ $0.canMove && $0.trayImage == nil }).prefix(30) {
-                guard let window = content.windows.first(where: { $0.windowID == entry.windowID }), window.frame.width < 300 else { continue }
+            for entry in entries.filter({ $0.canMove && (force || $0.trayImage == nil) }).prefix(30) {
+                guard let window = content.windows.first(where: { $0.windowID == entry.windowID }), window.frame.width < 1000 else { continue }
                 let filter = SCContentFilter(desktopIndependentWindow: window)
                 let options = SCStreamConfiguration()
                 options.width = max(1, Int(window.frame.width * 2))
@@ -425,18 +431,45 @@ final class MenuBarService {
         }
     }
 
+    /// Unknown windows are read-only anchors too. Control Center hosts both
+    /// native and third-party items, so its PID cannot identify a system item.
+    private func visibleZoneWindows(_ windows: [StatusWindow]) -> [StatusWindow] {
+        guard let arrow = windows.first(where: { $0.name == "MenuBarStudio.Entrance" }) else { return [] }
+        let height = NSScreen.screens.first?.frame.maxY ?? 0
+        let arrowPoint = CGPoint(x: arrow.frame.midX, y: height - arrow.frame.midY)
+        guard let screen = NSScreen.screens.first(where: { $0.frame.contains(arrowPoint) }) else { return [] }
+        let hidden = Set(hiddenItemWindows.values)
+        return windows.filter {
+            !$0.name.hasPrefix("MenuBarStudio.") && !hidden.contains($0.id)
+                && LayoutPolicy.participatesInStatusOrdering(windowName: $0.name,
+                    hostBundleID: NSRunningApplication(processIdentifier: $0.pid)?.bundleIdentifier ?? "")
+                && $0.frame.width < 1000 && abs($0.frame.midY - arrow.frame.midY) < 4
+                && screen.frame.contains(CGPoint(x: $0.frame.midX, y: height - $0.frame.midY))
+        }
+    }
+
+    func visibleItemsCrossingProtectedBoundary() -> [String] {
+        let zone = visibleZoneWindows(visibleStatusWindows())
+        let managed = Set(visibleItemWindows.values)
+        let protected = zone.filter { !managed.contains($0.id) }.map(\.frame)
+        return visibleItemWindows.compactMap { id, window in
+            guard let item = zone.first(where: { $0.id == window }),
+                  LayoutPolicy.crossesProtectedItems(item: item.frame, protectedItems: protected) else { return nil }
+            return id
+        }
+    }
+
     private func leadingControls(_ windows: [StatusWindow]) -> Bool {
         guard let arrow = windows.first(where: { $0.name == "MenuBarStudio.Entrance" }),
               let edge = windows.first(where: { $0.name == "MenuBarStudio.Divider" }) else { return false }
-        let managedIDs = Set(visibleItemWindows.values).union(hiddenItemWindows.values)
         return LayoutPolicy.entranceIsLeading(divider: edge.frame, entrance: arrow.frame,
-            otherItems: windows.filter { managedIDs.contains($0.id) }.map(\.frame))
+            otherItems: visibleZoneWindows(windows).map(\.frame))
     }
 
     private func firstVisibleControl(_ windows: [StatusWindow]) -> Bool {
         guard let arrow = windows.first(where: { $0.name == "MenuBarStudio.Entrance" }) else { return false }
-        let items = visibleItemWindows.values.compactMap { id in windows.first(where: { $0.id == id }) }
-        guard items.count == visibleItemWindows.count else { return false }
+        let items = visibleZoneWindows(windows)
+        guard Set(items.map(\.id)).isSuperset(of: visibleItemWindows.values) else { return false }
         return !items.contains { $0.frame.midX < arrow.frame.midX - 2 }
     }
 
@@ -447,8 +480,7 @@ final class MenuBarService {
         let windows = visibleStatusWindows()
         if collapsed ? firstVisibleControl(windows) : leadingControls(windows) { return }
         guard let arrow = windows.first(where: { $0.name == "MenuBarStudio.Entrance" }) else { throw ServiceError.notVisible }
-        let visibleIDs = Set(visibleItemWindows.values)
-        guard let first = windows.filter({ visibleIDs.contains($0.id) && $0.frame.midX < arrow.frame.midX - 2 })
+        guard let first = visibleZoneWindows(windows).filter({ $0.frame.midX < arrow.frame.midX - 2 })
             .min(by: { $0.frame.minX < $1.frame.minX }) else { throw ServiceError.notVisible }
         let entry = MenuBarEntry(id: "xiaoti-entrance", windowID: arrow.id, pid: getpid(), hostPID: arrow.pid,
             bundleID: "local.menubarstudio.app", name: L("小屉入口"), title: arrow.name,
@@ -511,6 +543,9 @@ final class MenuBarService {
                 "entrance": geometry(arrow.frame), "divider": edge.map { geometry($0.frame) } ?? [:],
                 "dividerObserved": edge != nil,
                 "scope": "managed-application-items",
+                "protectedOrderViolations": visibleItemsCrossingProtectedBoundary(),
+                "protectedWindows": visibleZoneWindows(windows).filter { !visibleIDs.contains($0.id) }
+                    .map { ["window": Int($0.id), "frame": geometry($0.frame)] as [String: Any] },
                 "firstRightWindow": right.first.map { Int($0.id) } ?? -1,
                 "items": entries.filter(\.canMove).map { entry -> [String: Any] in
                     let id = liveWindows[entry.id] ?? entry.windowID
@@ -651,11 +686,9 @@ final class MenuBarService {
                 lastMoveTrace["lastBoundaryX"] = boundary.minX
                 lastMoveTrace["attempt\(attempt)FrameX"] = itemFrame.minX
                 lastMoveTrace["attempt\(attempt)AnchorX"] = anchor.minX
-                let visibleIDs = Set(visibleItemWindows.values).subtracting([entry.windowID])
-                let firstSlot = placement == .shelf || (itemFrame.midX > anchor.midX + 2 && !visibleIDs.contains {
-                    guard let other = frame($0) else { return false }
-                    return other.midX > anchor.midX + 2 && other.midX < itemFrame.midX - 2
-                })
+                let others = visibleZoneWindows(visibleStatusWindows()).filter { $0.id != entry.windowID }.map(\.frame)
+                let firstSlot = placement == .shelf || LayoutPolicy.isFirstVisibleSlot(
+                    item: itemFrame, entrance: anchor, otherItems: others)
                 let frame = itemFrame
                 stable = side == placement && firstSlot ? stable + 1 : 0
                 if stable >= 2 {
@@ -693,9 +726,11 @@ final class MenuBarService {
         guard let dividerID = statusWindowIDs["MenuBarStudio.Divider"], let edge = frame(dividerID),
               let arrowID = statusWindowIDs["MenuBarStudio.Entrance"], let arrow = frame(arrowID) else { return nil }
         if placement == .shelf { return (dividerID, CGPoint(x: edge.minX - 4, y: edge.midY)) }
-        let candidates = visibleItemWindows.filter { $0.key != entry.id }.values.compactMap { id -> (CGWindowID, CGRect)? in
-            guard let bounds = frame(id), bounds.midX > arrow.midX else { return nil }
-            return (id, bounds)
+        // Use the nearest actual neighbor, including a read-only system anchor
+        // when no managed app remains visible. Never drop across that anchor.
+        let candidates = visibleZoneWindows(visibleStatusWindows()).compactMap { window -> (CGWindowID, CGRect)? in
+            guard window.id != entry.windowID, window.frame.midX > arrow.midX else { return nil }
+            return (window.id, window.frame)
         }
         if let neighbor = candidates.min(by: { $0.1.minX < $1.1.minX }) {
             let sourceFrame = frame(entry.windowID) ?? entry.frame

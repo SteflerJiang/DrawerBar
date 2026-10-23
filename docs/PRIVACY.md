@@ -1,6 +1,6 @@
 # Privacy / 隐私
 
-No accounts, network requests, analytics, telemetry, advertisements, cloud storage, or automatic update checks are implemented. Icon captures are requested for menu bar icon artwork, processed in memory, and not written to image files or transmitted. The Screen Recording permission is optional; app artwork is the fallback.
+No accounts, network requests, analytics, telemetry, advertisements, cloud storage, or automatic update checks are implemented. Icon captures are requested for menu bar icon artwork, processed in memory, and not written to image files or transmitted. When the drawer opens, the app also samples a narrow strip of the menu bar on that display to match its background. A per-row median removes glyph detail; only a one-pixel-wide color strip stays in memory. This sample is not saved or uploaded. The Screen Recording permission is optional; system material and app artwork are the fallback.
 
 Accessibility is required for identifying and moving menu bar icons and invoking their original actions. macOS grants a broad permission; the application's intended use is restricted to menu bar management. Event taps route synthetic move events, observe escape/hotkey events, and support native-menu handling. Typed text is not logged. This is not a sandboxed App Store application.
 
@@ -12,7 +12,7 @@ Local data: `~/Library/Application Support/MenuBarStudio/`.
 - `last-check.json` and `diagnostic-history.jsonl`: current/bounded diagnostic history (up to 200 entries), including source app identifiers, action types, geometry, timing and original-menu item counts. No screenshots, menu body text, or typed characters. These are local, but can reveal installed/running apps. Review before sharing.
 - System preferences: current-user/current-host spacing and padding. macOS owns Accessibility, capture, login item, and preferred language records.
 
-没有账号、联网请求、分析、遥测、广告、云存储或自动更新检查。原图标按需截取、内存处理，不保存图片、不上传。不允许录屏时使用应用图标。
+没有账号、联网请求、分析、遥测、广告、云存储或自动更新检查。原图标按需截取、内存处理，不保存图片、不上传。展开浮栏时，还会在所在显示器的菜单栏上做窄条颜色采样，逐行取中值，只在内存中保留一像素宽的颜色条，用于匹配背景；不保存、不上传。不允许录屏时使用系统材质及应用图标。
 
 辅助功能用于识别、移动及操作菜单栏项目。系统授予的权限本身较广，本工具的用途限于菜单栏管理。事件监听用于路由移动事件、快捷键 / Esc 和原菜单处理，不记录输入文字；应用不是沙盒 App Store 程序。
 

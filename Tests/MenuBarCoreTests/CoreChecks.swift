@@ -56,15 +56,46 @@ enum CoreChecks {
                "leading-arrow validation also works while hidden items are collapsed")
         print("PASS leading entrance and first visible insertion slot")
 
+        let input = CGRect(x: 570, y: 0, width: 26, height: 26)
+        let battery = CGRect(x: 596, y: 0, width: 38, height: 26)
+        let misplacedMeter = CGRect(x: 634, y: 0, width: 82, height: 26)
+        expect(!LayoutPolicy.isFirstVisibleSlot(item: misplacedMeter, entrance: arrow, otherItems: [input, battery]),
+               "a sole visible SSRUN after Input and Battery must not pass first-slot verification")
+        expect(LayoutPolicy.crossesProtectedItems(item: misplacedMeter, protectedItems: [input, battery]),
+               "an unchanged visible classification must still detect crossing the protected group")
+        expect(LayoutPolicy.isFirstVisibleSlot(item: visibleItem, entrance: arrow, otherItems: [input, battery]),
+               "insertion before the first system anchor is valid with no other managed app")
+        expect(!LayoutPolicy.crossesProtectedItems(item: visibleItem, protectedItems: [input, battery]),
+               "ordinary managed placement before the protected group needs no repair")
+        expect(!LayoutPolicy.isFirstVisibleSlot(item: misplacedMeter, entrance: arrow, otherItems: [visibleItem, input]),
+               "another managed icon also occupies the first slot")
+        expect(!LayoutPolicy.crossesProtectedItems(item: visibleItem,
+                protectedItems: [CGRect(x: 400, y: 1000, width: 26, height: 26)]),
+               "a protected item in another menu bar row cannot cause a repair")
+        expect(!LayoutPolicy.isFirstVisibleSlot(item: CGRect(x: 400, y: 0, width: 26, height: 26), entrance: arrow, otherItems: []),
+               "an item left of the entrance is never a valid shown insertion")
+        print("PASS read-only system boundary and sole visible traffic-meter regression")
+        expect(!LayoutPolicy.participatesInStatusOrdering(windowName: "AudioVideoModule", hostBundleID: "com.apple.controlcenter"),
+               "the OS capture indicator must never be moved or mistaken for an app/system insertion slot")
+        expect(LayoutPolicy.participatesInStatusOrdering(windowName: "Battery", hostBundleID: "com.apple.controlcenter"),
+               "Battery remains a read-only ordering anchor")
+        expect(LayoutPolicy.participatesInStatusOrdering(windowName: "Item-0", hostBundleID: "com.apple.controlcenter"),
+               "unnamed hosted items must not all be excluded with the privacy indicator")
+        expect(LayoutPolicy.participatesInStatusOrdering(windowName: "AudioVideoModule", hostBundleID: "org.example.app"),
+               "a third-party title alone cannot claim the system privacy exception")
+
         let oneIcon = ShelfLayout(itemCount: 1, availableWidth: 1420)
-        expect(oneIcon.width == 161 && oneIcon.viewportWidth == 42, "single icon keeps its complete 40-point tile and both border insets")
+        expect(oneIcon.viewportWidth == 26 && !oneIcon.needsHorizontalScrolling, "single native icon keeps its complete width and border insets")
         let sixIcons = ShelfLayout(itemCount: 6, availableWidth: 1420)
-        expect(sixIcons.width == 401 && !sixIcons.needsHorizontalScrolling, "all six hidden icons fit in one row without a scroll container")
-        let longRow = ShelfLayout(itemCount: 13, availableWidth: 1420)
-        expect(longRow.width == 737 && longRow.height == oneIcon.height && !longRow.needsHorizontalScrolling, "single row can grow beyond the old 620-point cap")
-        let screenLimited = ShelfLayout(itemCount: 30, availableWidth: 1000)
+        expect(sixIcons.viewportWidth == 156 && !sixIcons.needsHorizontalScrolling, "all six hidden icons fit in one row without a scroll container")
+        let longRow = ShelfLayout(itemWidths: Array(repeating: 82, count: 13), availableWidth: 1420)
+        expect(longRow.width > 620 && longRow.width < 1420 && longRow.height == oneIcon.height && !longRow.needsHorizontalScrolling, "single row can grow beyond the old 620-point cap")
+        let screenLimited = ShelfLayout(itemWidths: Array(repeating: 82, count: 30), availableWidth: 1000)
         expect(screenLimited.width == 1000 && screenLimited.needsHorizontalScrolling && screenLimited.height == oneIcon.height, "physical screen overflow remains a single accessible horizontal row")
         expect(ShelfLayout(itemCount: 0, availableWidth: 1420).width == 240, "empty state keeps enough room for its message")
+        let nativeMeter = ShelfLayout(itemWidths: [19, 42, 82], itemHeight: 30, availableWidth: 1420)
+        expect(nativeMeter.viewportWidth == 149 && nativeMeter.height == 44 && !nativeMeter.needsHorizontalScrolling,
+               "native menu icon sizes and a wide SSRUN traffic meter remain unscaled in a compact single row")
         print("PASS shelf sizing, full first icon, all-hidden single row and screen limits")
 
         let absent = SpacingSnapshot(spacing: nil, padding: nil)

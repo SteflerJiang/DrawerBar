@@ -43,6 +43,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
     @Published var loginEnabled = false
     @Published var shortcutNotice: String?
     @Published var shelfPresented = false
+    @Published var shelfAppearance = MenuBarAppearance()
     let service = MenuBarService()
     let store = ConfigurationStore()
     let spacing = SpacingPreferences()
@@ -239,6 +240,17 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         }.map(\.id))
         let desired = Dictionary(snapshot.filter { restoring.contains($0.id) }.map { ($0.id, config.placement(for: $0.id)) }, uniquingKeysWith: { first, _ in first })
         snapshot = await reconcilePlacements(snapshot, restoring: restoring)
+        // A visible app can still be misplaced inside the read-only system
+        // group. Repair only that app; never move Battery/Input or rewrite a
+        // user's order within the managed group.
+        if accessibility && !paused {
+            let misplaced = Set(service.visibleItemsCrossingProtectedBoundary())
+            for index in snapshot.indices where snapshot[index].canMove && snapshot[index].placement == .visible
+                && misplaced.contains(snapshot[index].id) {
+                do { snapshot[index] = try await service.move(snapshot[index], to: .visible) }
+                catch { message = L("未能恢复 %@ 的位置：%@", snapshot[index].name, error.localizedDescription) }
+            }
+        }
         permissionRestorePending = false
         if captureArtwork {
             let images = await service.capture(snapshot)
@@ -437,6 +449,14 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         pinned = false; outsideSince = nil
         let preferred = preferPointer ? NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) }) : nil
         shelfScreenNumber = preferred?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+        if let appearance = await service.captureMenuBarAppearance(screen: currentShelfScreen, anchor: shelfAnchor) {
+            shelfAppearance = appearance
+        }
+        let hidden = entries.filter { $0.canMove && $0.placement == .shelf }
+        let images = await service.capture(hidden, force: true)
+        for index in entries.indices {
+            if let image = images[entries[index].windowID] { entries[index].trayImage = image }
+        }
         if shelfPanel == nil {
             let panel = ShelfPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
             panel.title = L("小屉浮栏")
@@ -463,8 +483,10 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
                       y: screen.visibleFrame.maxY, width: 24, height: 0)
     }
     var shelfLayout: ShelfLayout {
-        ShelfLayout(itemCount: accessibility ? entries.filter { $0.canMove && $0.placement == .shelf }.count : 0,
-                    availableWidth: currentShelfScreen.frame.width - 20)
+        let hidden = accessibility ? entries.filter { $0.canMove && $0.placement == .shelf } : []
+        return ShelfLayout(itemWidths: hidden.map(\.shelfWidth),
+            itemHeight: hidden.map { $0.trayImage?.size.height ?? $0.frame.height }.max() ?? ShelfLayout.tileHeight,
+            availableWidth: currentShelfScreen.frame.width - 20)
     }
     private func sizeShelf() {
         let layout = shelfLayout, screen = currentShelfScreen, anchor = shelfAnchor

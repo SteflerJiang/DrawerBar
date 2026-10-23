@@ -58,7 +58,8 @@ struct RootView: View {
                 }.buttonStyle(.plain)
             }
             Spacer()
-            Text((L10n.appName + "  0.1.10")).font(.system(size: 11)).foregroundStyle(secondaryText).padding(12)
+            Text(L10n.appName + "  " + (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""))
+                .font(.system(size: 11)).foregroundStyle(secondaryText).padding(12)
         }.padding(.horizontal, 12).padding(.top, 44).frame(width: 250).background(.regularMaterial)
     }
 }
@@ -458,6 +459,50 @@ private struct TrayClickSurface: NSViewRepresentable {
     }
 }
 
+/// One compact, full-row action instead of a blank dialog with a separate link.
+struct EmptyShelfAction: View {
+    let image: NSImage
+    let title: String
+    let actionTitle: String
+    let action: () -> Void
+    @State private var hovered = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(nsImage: image).renderingMode(.template)
+                    .resizable().scaledToFit().frame(width: 20, height: 20)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 32, height: 32)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).font(.system(size: 12, weight: .medium)).foregroundStyle(.primary)
+                    Text(actionTitle).font(.system(size: 11)).foregroundStyle(.secondary)
+                }
+                .lineLimit(1)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(EmptyShelfButtonStyle())
+        .background(Color.primary.opacity(hovered ? 0.035 : 0), in: RoundedRectangle(cornerRadius: 12))
+        .onHover { hovered = $0 }
+        .accessibilityLabel(actionTitle)
+        .accessibilityHint(title)
+        .help(actionTitle)
+    }
+}
+
+private struct EmptyShelfButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.background(Color.primary.opacity(configuration.isPressed ? 0.07 : 0),
+            in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
 struct ShelfView: View {
     @EnvironmentObject var model: AppController
     var hidden: [MenuBarEntry] { model.entries.filter { $0.canMove && $0.placement == .shelf } }
@@ -467,12 +512,14 @@ struct ShelfView: View {
         HStack(spacing: ShelfLayout.itemSpacing) {
             ForEach(hidden) { entry in
                 ZStack {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(entry.trayImage != nil && entry.trayNeedsDarkBackdrop ? Color(red: 0.12, green: 0.17, blue: 0.23) : Color.white)
-                    AppIcon(entry: entry, size: 29, tray: true)
+                    if let image = entry.trayImage {
+                        Image(nsImage: image).renderingMode(.original).resizable().interpolation(.high)
+                            .frame(width: image.size.width, height: image.size.height)
+                    } else {
+                        AppIcon(entry: entry, size: 18)
+                    }
                     TrayClickSurface(name: entry.name, left: { model.activate(entry, modifiers: $0) }, right: { model.activate(entry, right: true, modifiers: $0) })
-                }.frame(width: ShelfLayout.tileWidth, height: ShelfLayout.tileHeight)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.22), lineWidth: 1))
+                }.frame(width: entry.shelfWidth, height: layout.itemHeight)
             }
         }.padding(ShelfLayout.contentPadding)
             .fixedSize(horizontal: true, vertical: false)
@@ -486,38 +533,49 @@ struct ShelfView: View {
                     Button(L("打开权限与帮助")) { model.closeShelf(); model.showSettings(.permissions) }.buttonStyle(.link)
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if hidden.isEmpty {
-                VStack(spacing: 10) {
-                    Text(L("小屉里还没有图标")).font(.system(size: 13, weight: .medium))
-                    Button(L("打开图标整理")) { model.closeShelf(); model.showSettings(.items) }.buttonStyle(.link)
-                }.frame(maxWidth: .infinity, maxHeight: .infinity)
+                EmptyShelfAction(image: model.service.entranceImage,
+                    title: L("小屉里还没有图标"), actionTitle: L("打开图标整理")) {
+                    model.closeShelf(); model.showSettings(.items)
+                }
             } else {
                 HStack(spacing: ShelfLayout.sectionSpacing) {
                     if layout.needsHorizontalScrolling {
                         ScrollView(.horizontal, showsIndicators: true) { icons }
-                            .frame(width: layout.viewportWidth, height: ShelfLayout.tileHeight + 2 * ShelfLayout.contentPadding)
+                            .frame(width: layout.viewportWidth, height: layout.itemHeight + 2 * ShelfLayout.contentPadding)
                             .overlay(alignment: .trailing) {
                                 Image(systemName: "chevron.right.circle.fill").symbolRenderingMode(.palette)
-                                    .foregroundStyle(.secondary, Color(nsColor: .windowBackgroundColor))
+                                    .foregroundStyle(.primary, .clear)
                                     .help(L("横向滚动查看更多图标")).allowsHitTesting(false)
                             }
                     } else {
                         icons.frame(width: layout.viewportWidth, alignment: .leading)
                     }
-                    Divider().frame(width: ShelfLayout.dividerWidth, height: 30)
+                    Rectangle().fill(Color.primary.opacity(0.2)).frame(width: ShelfLayout.dividerWidth, height: 18)
                     Button { model.pinned.toggle() } label: {
-                        Image(systemName: model.pinned ? "pin.fill" : "pin").font(.system(size: 16, weight: .medium)).frame(width: ShelfLayout.controlWidth, height: ShelfLayout.tileHeight)
-                    }.buttonStyle(.plain).foregroundStyle(model.pinned ? .blue : .primary)
+                        Image(systemName: model.pinned ? "pin.fill" : "pin").font(.system(size: 13, weight: .medium))
+                            .frame(width: ShelfLayout.controlWidth, height: layout.itemHeight)
+                            .background(Color.primary.opacity(model.pinned ? 0.16 : 0), in: RoundedRectangle(cornerRadius: 4))
+                    }.buttonStyle(.plain).foregroundStyle(.primary)
                         .help(model.pinned ? L("取消固定") : L("临时固定浮栏"))
                         .accessibilityLabel(model.pinned ? L("取消固定浮栏") : L("固定浮栏"))
                         .accessibilityValue(model.pinned ? L("已固定") : L("未固定"))
                     Button { model.closeShelf(); model.showSettings(.items) } label: {
-                        Image(systemName: "gearshape").font(.system(size: 18, weight: .medium)).frame(width: ShelfLayout.controlWidth, height: ShelfLayout.tileHeight)
+                        Image(systemName: "gearshape").font(.system(size: 15, weight: .medium))
+                            .frame(width: ShelfLayout.controlWidth, height: layout.itemHeight)
                     }.buttonStyle(.plain).help(L("图标整理")).accessibilityLabel(L("打开图标整理"))
                 }.padding(.horizontal, ShelfLayout.horizontalPadding).padding(.vertical, ShelfLayout.verticalPadding)
             }
         }.frame(width: layout.width, height: layout.height)
-            .background(Color(nsColor: .windowBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.22), lineWidth: 1))
+            .background {
+                if let image = model.shelfAppearance.background {
+                    Image(nsImage: image).resizable().interpolation(.high)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                } else {
+                    RoundedRectangle(cornerRadius: 12).fill(.regularMaterial)
+                }
+            }
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
+            .environment(\.colorScheme, model.shelfAppearance.isDark ? .dark : .light)
     }
 }
 

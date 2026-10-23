@@ -2,7 +2,7 @@
 
 **简体中文** · [English](README.md)
 
-**[下载 DMG 安装包（推荐）](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.10/DrawerBar-0.1.10-AppleSilicon.dmg>)** · **[下载 ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.10/DrawerBar-0.1.10-arm64.zip>)** · [v0.1.10 预览版说明](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.10)
+**[下载 DMG 安装包（推荐）](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.11/DrawerBar-0.1.11-AppleSilicon.dmg>)** · **[下载 ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.11/DrawerBar-0.1.11-arm64.zip>)** · [v0.1.11 预览版说明](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.11)
 
 给 Mac 菜单栏加一个小抽屉。常用图标留在外面，偶尔用的收进单行浮栏。
 
@@ -12,7 +12,7 @@
 
 ## 下载
 
-当前可下载版本为 **v0.1.10 开发预览版**。直接点击页首的 **下载 DMG 安装包 / 下载 ZIP**，或进入[对应版本页](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.10)。如果 GitHub 底部的 Assets 区块一直显示 Loading，页首的直达链接仍可使用。GitHub 自动提供的“Source code”是源码压缩包，不是安装包；也可按下文[源码构建](#源码构建)。
+当前可下载版本为 **v0.1.11 开发预览版**。直接点击页首的 **下载 DMG 安装包 / 下载 ZIP**，或进入[对应版本页](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.11)。如果 GitHub 底部的 Assets 区块一直显示 Loading，页首的直达链接仍可使用。GitHub 自动提供的“Source code”是源码压缩包，不是安装包；也可按下文[源码构建](#源码构建)。
 
 预览版使用临时签名，**没有 Developer ID 签名，也没有经过 Apple 公证**。CI 构建通过不代表真实菜单栏交互已通过验收。目前无自动更新、App Store、Homebrew 或 Intel 版本。
 
@@ -38,6 +38,10 @@
 - **通用设置**：快捷键可选 **⌘⇧Space**、**⌘⇧B** 或关闭；被占用时明确提示。可开启登录时启动，深浅色跟随系统。
 - **恢复图标整理默认配置**：清除分类和浮栏顺序前需要确认；保留间距、快捷键和登录时启动设置，并保存恢复前的本机备份。
 
+### 浮栏外观
+
+允许屏幕录制后，浮栏跟随菜单栏的背景配色，原始图标按原尺寸显示，不再使用独立卡片底色或边框。网速、未读数等宽图标保留原宽度。未授权时使用系统材质与应用图标替代。小屉为空时显示紧凑提示，点击整行即可打开图标整理。
+
 ### 图标间距
 
 支持“默认间隔、较小间隔、小间隔、无间隔”四档，选中即保存，无“应用”按钮、无二次确认。支持撤销和恢复系统默认。
@@ -54,7 +58,7 @@
 
 ## 隐私与本机数据
 
-图标图像仅在本机内存中处理，不保存、不上传。应用没有联网、账号、遥测或自动更新代码。辅助功能与录屏权限属于 macOS 本机权限。
+图标图像与菜单栏小范围颜色采样仅在本机内存中处理，不保存、不上传。应用没有联网、账号、遥测或自动更新代码。辅助功能与录屏权限属于 macOS 本机权限。
 
 配置与有限的诊断记录位于 `~/Library/Application Support/MenuBarStudio/`。为了兼容旧用户，内部 Bundle ID 保留 `local.menubarstudio.app`。诊断可能包含来源应用标识、窗口几何、操作类型及耗时，不包含截图、菜单正文或输入文字。公开提交前请自行检查并脱敏。详见[隐私说明](docs/PRIVACY.md)。
 

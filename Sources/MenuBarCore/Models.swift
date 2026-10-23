@@ -72,6 +72,25 @@ public struct UserConfiguration: Codable {
 }
 
 public enum LayoutPolicy {
+    /// The OS pins the capture/privacy indicator separately from reorderable
+    /// status extras. It is neither a managed app nor an insertion boundary.
+    public static func participatesInStatusOrdering(windowName: String, hostBundleID: String) -> Bool {
+        !(hostBundleID == "com.apple.controlcenter" && windowName == "AudioVideoModule")
+    }
+
+    /// Include system/unmanaged items in slot validation. Ignoring them allows
+    /// the sole visible app to be accepted on the far side of Battery or Input.
+    public static func isFirstVisibleSlot(item: CGRect, entrance: CGRect, otherItems: [CGRect]) -> Bool {
+        guard abs(item.midY - entrance.midY) < 4, item.midX > entrance.midX + 2 else { return false }
+        return !otherItems.contains {
+            abs($0.midY - entrance.midY) < 4 && $0.midX > entrance.midX + 2 && $0.midX < item.midX - 2
+        }
+    }
+
+    public static func crossesProtectedItems(item: CGRect, protectedItems: [CGRect]) -> Bool {
+        protectedItems.contains { abs($0.midY - item.midY) < 4 && $0.midX < item.midX - 2 }
+    }
+
     public static func placementDestination(_ placement: ItemPlacement, divider: CGRect,
                                             entrance: CGRect, y: CGFloat) -> CGPoint {
         CGPoint(x: placement == .shelf ? divider.minX - 4 : entrance.maxX + 4, y: y)

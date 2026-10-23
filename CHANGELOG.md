@@ -1,5 +1,13 @@
 # Changelog / 更新记录
 
+## 0.1.11 — Native drawer and system boundaries / 原样式浮栏与系统边界修复
+
+- Include system and unmanaged status items when choosing and verifying the first shown slot. A lone visible application must stay before Input, Battery, and other system extras. / 显示图标时同时检查系统与未托管项目；仅有一个常驻应用时，也不能插入输入法、电源等系统图标之间。
+- Detect a visible application crossing the protected group even when its hidden/visible classification has not changed; repair only the application. System items remain read-only anchors. / 可见分类不变时仍检查越界，只修复第三方应用位置，系统图标作为只读参照。
+- Exclude the OS-owned capture/privacy indicator from discovery and ordering. Its fixed position must not cause repeated repairs or be mistaken for another app. / 系统录屏隐私指示器不参与发现与排序，避免误认应用及重复修复。
+- Drawer colors follow a narrow sample of the real menu bar. Original icons use native dimensions, including wide meters; individual card backgrounds and borders are removed. A compact empty row opens Organize Icons in one click. / 浮栏跟随真实菜单栏配色，原始图标按原尺寸展示，保留宽图标，移除单独底色与边框；空状态缩小为一键打开整理页的紧凑入口。
+- This targeted fix does not resolve the previously documented animation-overlap and instant-spacing limitations. See TESTING.md for the actual native scope. / 此次修复不代表已解决既有动画重叠与即时间距限制，实测范围见测试文档。
+
 ## 0.1.10 — Developer preview / 开发预览
 
 - English product name **DrawerBar**, Chinese **小屉**; 168 translated strings, localized app metadata, permission explanations, menus, errors, and accessibility labels. / 中英文名称与完整语言资源。

@@ -2,7 +2,7 @@
 
 [简体中文](README.zh-CN.md) · **English**
 
-**[Download DMG](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.10/DrawerBar-0.1.10-AppleSilicon.dmg>)** · **[Download ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.10/DrawerBar-0.1.10-arm64.zip>)** · [v0.1.10 preview notes](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.10)
+**[Download DMG](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.11/DrawerBar-0.1.11-AppleSilicon.dmg>)** · **[Download ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.11/DrawerBar-0.1.11-arm64.zip>)** · [v0.1.11 preview notes](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.11)
 
 A small drawer for your Mac's menu bar. Keep everyday icons visible and tuck less-used ones into a single-row drawer.
 
@@ -12,7 +12,7 @@ Native SwiftUI + AppKit. Built for Apple Silicon. English and Simplified Chinese
 
 ## Download
 
-The current developer preview is **v0.1.10**. Use the **Download DMG / Download ZIP** links above, or visit its [release page](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.10). If GitHub’s Assets section stays on “Loading”, the direct links above bypass that section. GitHub’s automatic “Source code” archives contain source, not an installable app. You can also [build from source](#build-from-source).
+The current developer preview is **v0.1.11**. Use the **Download DMG / Download ZIP** links above, or visit its [release page](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.11). If GitHub’s Assets section stays on “Loading”, the direct links above bypass that section. GitHub’s automatic “Source code” archives contain source, not an installable app. You can also [build from source](#build-from-source).
 
 Previews use an ad-hoc signature. They are **not Developer ID signed or notarized by Apple**. Do not assume CI build success means native interaction tests passed. There is no automatic updater, App Store distribution, Homebrew cask, or Intel build.
 
@@ -38,6 +38,10 @@ Each user must grant permissions on their own Mac. A different ad-hoc build may 
 - **General:** choose **⌘⇧Space**, **⌘⇧B**, or Off. A shortcut conflict is reported. Enable launch at login if wanted. The interface follows system light/dark appearance.
 - **Reset Icon Arrangement:** confirmation is required because it clears categories and drawer order. Spacing, keyboard shortcut, and login preference remain unchanged. A local pre-reset backup is kept.
 
+### Drawer appearance
+
+With Screen Recording access, the drawer matches the menu bar's background colors and displays original status icons at their native point sizes. Wide items, such as traffic meters and unread counts, retain their width. Icons have no separate card fill or border. Without capture access, system material and app artwork are used. An empty drawer is a compact row; click it once to open Organize Icons.
+
 ### Spacing
 
 Choose **System Default**, **Comfortable**, **Compact**, or **Minimal**. Selecting a preset saves immediately, with no Apply button or second confirmation. **Undo Last Change** and **Restore System Default** are available.
@@ -54,7 +58,7 @@ Follow your macOS language preferences, or choose an app-specific language in **
 
 ## Privacy
 
-Icon images are processed in local memory, not saved or uploaded. There is no networking, account, telemetry, or automatic update code in the app. Accessibility and capture permissions are macOS permissions, not cloud access.
+Icon images and a narrow menu-bar color sample are processed in local memory, not saved or uploaded. There is no networking, account, telemetry, or automatic update code in the app. Accessibility and capture permissions are macOS permissions, not cloud access.
 
 Configuration and bounded local diagnostics are stored in `~/Library/Application Support/MenuBarStudio/`. The legacy directory and bundle ID `local.menubarstudio.app` are intentionally retained for existing users. Diagnostics can contain app identifiers, window geometry, timing, and action types. They exclude screenshots, menu text, and typed text. Review and redact diagnostic files before sharing them publicly. See [privacy details](docs/PRIVACY.md).
 

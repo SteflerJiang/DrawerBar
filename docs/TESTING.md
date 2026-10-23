@@ -35,6 +35,26 @@ Test on an unlocked desktop, save original configuration, use a disposable helpe
 
 ## Current native regression / 当前实机回归
 
+### 0.1.11 system boundary / 系统图标边界
+
+The targeted ordering regression passed on the same M1 / macOS 26.6.2 / single non-notched display. Eighteen candidate moves covered SSRUN as the only visible app, all six hidden, all six shown, and repeated hide/show. Four additional moves on the ordering candidate, before the subsequent drawer restyling, covered SSRUN hide/show and ChatGPT show/hide. All 22 moves succeeded on the first attempt. Each recorded result checked the entrance, actual visible application positions before the protected group, and the unchanged relative order of the system anchor windows. Geometry samples detected no hidden-peer exposure or full-region expansion. Those four ordering-candidate moves took 236–351 ms; they are not new timing measurements of the later styled binary.
+
+同一 M1 / macOS 26.6.2 / 单屏无刘海环境中，候选版 18 次操作覆盖仅 SSRUN 常驻、六项全藏全显及反复切换；后续浮栏改版前的排序候选二进制又完成 SSRUN 隐藏 / 显示、ChatGPT 显示 / 隐藏四次操作。22 次均一次成功，并检查入口、应用位于系统组左侧、系统参照窗口相对顺序不变。几何样本未检测到隐藏同伴露出或整区展开；这四次排序候选版耗时 236–351 ms，不是后来样式改版二进制的新耗时测量。
+
+The OS capture/privacy indicator is explicitly excluded from discovery and ordering; it is not a movable app or system insertion anchor. The user's original categories, drawer order, and other configuration were restored after testing. No private native diagnostics are bundled in the public repository or installer. This is a position/order check, not a new frame-by-frame animation certification; the earlier animation-overlap and spacing limitations remain open.
+
+系统录屏隐私指示器明确不参与发现及排序。测试后恢复用户原分类、浮栏顺序及其他配置；私人诊断不进入公开仓库或安装包。这是位置与顺序验收，不是新的逐帧动画证明；既有动画重叠及间距限制仍然存在。
+
+### 0.1.11 styled binary / 浮栏样式改版二进制
+
+The shipped executable SHA-256 is `b802caf0e6df438d894f4e87e87d24e68d485c65efd2450135e461977d37354f`. On the same Mac, native previews covered an empty drawer, one Flux icon, a wide SSRUN meter, and all six hidden icons with WeChat unread text. Background color sampling, original point sizes, no icon cards, a single row, pinning, automatic/Esc drawer closing, and the empty row opening Organize Icons were inspected. English/Chinese empty-row text was measured to fit; the 15 core groups passed in both languages and the 168-string audit passed.
+
+Flux's original context menu opened. Computer Use could not control the menu-only application to close it, so the user closed that native menu. Afterward the app was verified idle, with the original saved configuration restored, five apps visible and only Flux hidden, a leading entrance, and no system-boundary violation. This is targeted native coverage, not a full native-menu roundtrip automation or a new 22-move test of the styled binary. Other displays/wallpapers and denied-permission appearance were not natively exercised in this pass.
+
+发布二进制哈希见上。同一 Mac 已实测空浮栏、单个 Flux、SSRUN 宽网速图标、六个隐藏图标及 WeChat 未读数；核对菜单栏配色、原始尺寸、无图标卡片、单行、固定、自动 / Esc 收起及空状态一键打开整理页。中英文提示测量均能容纳；15 组双语核心检查与 168 条语言审计通过。
+
+Flux 原右键菜单已打开；Computer Use 无法控制其纯菜单栏应用进行关闭，由用户关闭。随后核对控制器空闲、原配置一致、五项常驻且仅 Flux 隐藏、入口靠左、未越过系统边界。这是定向实测，不是完整原菜单自动化回环，也不是样式版重新完成了此前 22 次排序测试；其他屏幕 / 壁纸、拒绝权限外观未在此轮实机验收。
+
 In 0.1.10 development, two experimental pickup-coordinate approaches failed the actual placement check. They were withdrawn; ordinary icon movement uses the prior 0.1.9 base path. Further motion/flicker investigation is still open. Do not read the bilingual release as completion of the full native regression.
 
 0.1.10 开发中，两种实验拾取坐标方案均未通过真实位置校验，已撤回；常规移动恢复为 0.1.9 的基础路径。轨迹与闪动仍需进一步调查。双语开源不代表完整实机验收已经完成。
