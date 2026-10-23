@@ -48,3 +48,14 @@ Only a single M1, macOS 26.6.2, non-notched desktop has been available. Multi-di
 Spacing adoption without source app reopening remains unresolved. Context menus depend on source app behavior. Preview builds are not notarized, and rebuilding may invalidate existing macOS permission records.
 
 免重开的间距即时生效仍未完成，原菜单取决于来源应用，预览版未公证，重新构建可能使旧授权失配。
+
+## 0.1.10 localization preview evidence / 双语预览验收记录
+
+- English and Simplified Chinese app windows were opened on the same Mac. Localized names, settings navigation, permission messages, and the English welcome guide were inspected. Core resource loading and format arguments passed in both language modes; 168 text keys passed the catalog audit.
+- 28 logged real icon moves on the base path all succeeded on the first attempt. The set included all six icons hidden and shown, plus repeated toggles. Transaction geometry samples found no full-region expansion or hidden-peer exposure. These samples do not prove visual smoothness.
+- With explicit user consent, two local 25-second recordings captured only the top menu bar (2880×52, no audio). Baseline playback reproduced brief insertion overlap. A slot-reservation experiment moved the target successfully but added extra peer motion and latency, so it was rejected and is absent from the preview source. Videos and derived images were deleted after analysis; no personal recordings or raw diagnostics were published.
+- This release does **not** claim completion of the full native test matrix, resolution of animation overlap, or equivalence to iBar. Notch, multi-display, other OS versions, original-menu edge cases, and the broader regression remain open.
+
+同一台 Mac 已打开中英文界面，核对名称、设置导航、权限提示与英文引导；两种语言核心检查及 168 条资源审计通过。基础路径的 28 条真实移动记录均一次成功，覆盖六个项目全藏、全显与反复切换；几何结果不能代替视觉验收。
+
+经用户明确许可，做了两次仅顶部菜单栏、无音频的 25 秒录屏。基础路径复现短暂插入重叠；预留空位实验虽能移动，但导致额外位移和延迟，已撤回，不进入预览源码。录屏与拆帧图分析后均已删除，未上传个人录像或原始诊断。本版不宣称完整功能矩阵全部通过、动画重叠已解决或达到 iBar 的顺滑程度；刘海、多屏、其他系统、原菜单边界与更广泛回归仍待完成。
