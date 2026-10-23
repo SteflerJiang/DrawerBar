@@ -72,6 +72,14 @@ public struct UserConfiguration: Codable {
 }
 
 public enum LayoutPolicy {
+    /// Hidden native windows can be omitted by WindowServer while their owner
+    /// is still running. That omission alone is not a user layout change.
+    public static func statusTopologySignature(observed: [UInt32: ItemPlacement], hiddenWindows: Set<UInt32>) -> String {
+        var sides = observed
+        for id in hiddenWindows where sides[id] == nil { sides[id] = .shelf }
+        return sides.sorted { $0.key < $1.key }.map { "\($0.key):\($0.value.rawValue)" }.joined(separator: ",")
+    }
+
     /// The OS pins the capture/privacy indicator separately from reorderable
     /// status extras. It is neither a managed app nor an insertion boundary.
     public static func participatesInStatusOrdering(windowName: String, hostBundleID: String) -> Bool {

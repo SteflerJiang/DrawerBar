@@ -352,7 +352,10 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             if let i = entries.firstIndex(where: { $0.id == entry.id }), let frame = service.currentFrame(for: entry) {
                 entries[i].frame = frame
             }
-            lastLayoutSignature = nil
+            // A verified move already updated both the native layout and entries.
+            // Do not trigger another full AX scan for that same topology. Failed
+            // moves still invalidate the signature so idle recovery can reconcile.
+            lastLayoutSignature = verified ? service.layoutSignature() : nil
             recordDiagnostic("placement", entry: entry, extra: ["verified": verified, "requestedPlacement": placement.rawValue,
                 "operationMilliseconds": Date().timeIntervalSince(started) * 1000,
                 "visibilitySamples": service.lastMoveVisibilitySamples,

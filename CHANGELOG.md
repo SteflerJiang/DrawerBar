@@ -1,5 +1,11 @@
 # Changelog / 更新记录
 
+## Unreleased — Topology scan reduction / 减少重复布局扫描
+
+- Keep the verified topology after a successful classification change. Normalize temporarily omitted hidden windows, and exclude the app's controls and OS capture indicator from idle topology checks. Real observed side changes still override the hidden-window cache. / 成功切换后保留已验证布局；隐藏窗口暂时未列出不再触发重复扫描，小屉控件与系统录屏指示器不参与空闲布局签名；实际观察到的分类变化仍优先处理。
+- Add regressions for omitted hidden windows, manual side changes, missing visible windows, and new windows. / 补充隐藏窗口遗漏、真实跨区移动、常驻窗口消失及新窗口的回归检查。
+- **Animation overlap and slow native retries remain unresolved.** Four motion experiments failed acceptance and were withdrawn. This is a scan-reduction change, not a completed animation fix or a new downloadable release. / **动画重叠与原生慢重试仍未解决。** 四个动画实验均未通过验收，已撤回。本次仅减少重复扫描，不代表动画修复完成，也不发布新安装包。
+
 ## 0.1.11 — Native drawer and system boundaries / 原样式浮栏与系统边界修复
 
 - Include system and unmanaged status items when choosing and verifying the first shown slot. A lone visible application must stay before Input, Battery, and other system extras. / 显示图标时同时检查系统与未托管项目；仅有一个常驻应用时，也不能插入输入法、电源等系统图标之间。

@@ -144,6 +144,16 @@ enum CoreChecks {
         relaunchConfig.spacingReloadSelection = ["explicitly-selected"]
         expect(relaunchConfig.spacingReloadIsSelected("explicitly-selected") && !relaunchConfig.spacingReloadIsSelected("new-app"), "explicit selection does not expand to newly discovered apps")
         print("PASS explicit relaunch consent and legacy selection migration")
+        let hiddenTopology = LayoutPolicy.statusTopologySignature(observed: [11: .visible], hiddenWindows: [12])
+        expect(hiddenTopology == LayoutPolicy.statusTopologySignature(observed: [12: .shelf, 11: .visible], hiddenWindows: [12]),
+               "an omitted hidden native window must not trigger another full layout scan")
+        expect(hiddenTopology != LayoutPolicy.statusTopologySignature(observed: [11: .visible, 12: .visible], hiddenWindows: [12]),
+               "a real manual move out of the hidden zone remains detectable")
+        expect(hiddenTopology != LayoutPolicy.statusTopologySignature(observed: [:], hiddenWindows: [12]),
+               "a missing visible window still changes the topology")
+        expect(hiddenTopology != LayoutPolicy.statusTopologySignature(observed: [11: .visible, 13: .visible], hiddenWindows: [12]),
+               "a newly discovered window still changes the topology")
+        print("PASS hidden-window omission stability and real topology change detection")
         print("All core checks passed. No system settings were written.")
     }
 }

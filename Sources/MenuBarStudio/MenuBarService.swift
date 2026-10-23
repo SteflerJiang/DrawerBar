@@ -218,16 +218,23 @@ final class MenuBarService {
     func layoutSignature() -> String? {
         guard let values = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]],
               let edge = statusFrame(named: "MenuBarStudio.Divider", item: divider) else { return nil }
-        let sides = values.compactMap { value -> String? in
+        var observed: [UInt32: ItemPlacement] = [:]
+        for value in values {
             guard value[kCGWindowLayer as String] as? Int == Int(CGWindowLevelForKey(.statusWindow)),
                   value[kCGWindowOwnerPID as String] as? Int32 != getpid(),
                   let id = value[kCGWindowNumber as String] as? UInt32,
                   let bounds = value[kCGWindowBounds as String] as? [String: Any],
                   let frame = CGRect(dictionaryRepresentation: bounds as CFDictionary),
-                  frame.height > 0, frame.height < 64, frame.width > 0, frame.width < 1000,
-                  let side = LayoutPolicy.observedPlacement(item: frame, divider: edge) else { return nil }
-            return "\(id):\(side.rawValue)"
-        }.sorted().joined(separator: ",")
+                  frame.height > 0, frame.height < 64, frame.width > 0, frame.width < 1000 else { continue }
+            let name = value[kCGWindowName as String] as? String ?? ""
+            guard !name.hasPrefix("MenuBarStudio.") else { continue }
+            if name == "AudioVideoModule",
+               let pid = value[kCGWindowOwnerPID as String] as? Int32,
+               !LayoutPolicy.participatesInStatusOrdering(windowName: name,
+                   hostBundleID: NSRunningApplication(processIdentifier: pid)?.bundleIdentifier ?? "") { continue }
+            if let side = LayoutPolicy.observedPlacement(item: frame, divider: edge) { observed[id] = side }
+        }
+        let sides = LayoutPolicy.statusTopologySignature(observed: observed, hiddenWindows: Set(hiddenItemWindows.values))
         // Side-of-divider alone misses an app moving through the system group.
         // Record order violations, not changing traffic-meter widths.
         return sides + "|protected:" + visibleItemsCrossingProtectedBoundary().sorted().joined(separator: ",")

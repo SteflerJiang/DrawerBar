@@ -35,6 +35,20 @@ Test on an unlocked desktop, save original configuration, use a disposable helpe
 
 ## Current native regression / 当前实机回归
 
+### Unreleased topology scan change / 未发布的布局扫描修正
+
+The retained local executable SHA-256 is `86284f2f07967a5621442518f77354c0a2075ce06c1cedf15621e04f08272563`. On the same M1 / macOS 26.6.2 / single display, 16 native classification moves covered all six shown, all six hidden, and repeated narrow/wide-icon toggles. Every move passed saved/UI classification, a leading entrance, the protected system boundary, no full-region expansion or hidden-peer exposure in geometry samples, and zero cursor displacement. Fourteen moves used one attempt; two needed retries. Observed native move times were 217–1343 ms, median 432 ms. These are measurements, not an improvement claim or an animation pass.
+
+保留的本地二进制哈希见上。同一 M1 / macOS 26.6.2 / 单屏完成 16 次分类切换，覆盖六项全显、全藏与宽窄图标反复切换。分类、入口靠左、系统边界、几何样本中隐藏同伴不露出与整区不展开、鼠标位移为零均通过；14 次一次成功，2 次发生重试。原生移动耗时 217–1343ms，中位 432ms。这是本次测量，不是速度提升或动画通过的声明。
+
+For 24 seconds after the final toggle, diagnostics recorded no automatic full layout synchronization. All 16 core groups passed in English and Simplified Chinese; the 168-string audit, arm64 release build, and ad-hoc signature verification passed. The original configuration was restored after testing. No raw diagnostics or personal recordings are included in the repository.
+
+最后一次切换后观察 24 秒，未记录到自动全量布局同步。16 组核心检查在中英文模式下通过，168 条语言审计、arm64 Release 构建及临时签名检查通过。测试后恢复原配置；私人诊断与录屏不进入仓库。
+
+Four separate motion candidates were rejected: destination-aligned pickup still visibly overlapped; batching down/up and actual-coordinate pickup failed native placement; reserving a single slot still produced a slow retry. All experimental event, reservation, and transition changes were removed. Temporary top-menu-only recordings and derived frames were deleted after analysis. The retained build uses the prior native movement mechanism. **The requested overlap-free, consistently fast movement has not passed acceptance, and no new release is published for it.**
+
+四个动画候选均被否决：目标附近拾取仍出现可见重叠；成对投递和真实坐标拾取未完成原生移动；预留单个空位仍有慢重试。实验事件、空位和过渡逻辑全部撤回，顶部菜单栏临时录屏与拆帧图分析后删除。保留构建继续使用原移动机制。**无重叠且持续快速的移动尚未通过验收，因此不为此发布新版。**
+
 ### 0.1.11 system boundary / 系统图标边界
 
 The targeted ordering regression passed on the same M1 / macOS 26.6.2 / single non-notched display. Eighteen candidate moves covered SSRUN as the only visible app, all six hidden, all six shown, and repeated hide/show. Four additional moves on the ordering candidate, before the subsequent drawer restyling, covered SSRUN hide/show and ChatGPT show/hide. All 22 moves succeeded on the first attempt. Each recorded result checked the entrance, actual visible application positions before the protected group, and the unchanged relative order of the system anchor windows. Geometry samples detected no hidden-peer exposure or full-region expansion. Those four ordering-candidate moves took 236–351 ms; they are not new timing measurements of the later styled binary.
