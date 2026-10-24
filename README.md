@@ -2,7 +2,7 @@
 
 [简体中文](README.zh-CN.md) · **English**
 
-**[Download DMG](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.11/DrawerBar-0.1.11-AppleSilicon.dmg>)** · **[Download ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.11/DrawerBar-0.1.11-arm64.zip>)** · [v0.1.11 preview notes](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.11)
+**[Download DMG](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.12/DrawerBar-0.1.12-AppleSilicon.dmg>)** · **[Download ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.12/DrawerBar-0.1.12-arm64.zip>)** · [v0.1.12 preview notes](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.12)
 
 A small drawer for your Mac's menu bar. Keep everyday icons visible and tuck less-used ones into a single-row drawer.
 
@@ -12,7 +12,7 @@ Native SwiftUI + AppKit. Built for Apple Silicon. English and Simplified Chinese
 
 ## Download
 
-The current developer preview is **v0.1.11**. Use the **Download DMG / Download ZIP** links above, or visit its [release page](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.11). If GitHub’s Assets section stays on “Loading”, the direct links above bypass that section. GitHub’s automatic “Source code” archives contain source, not an installable app. You can also [build from source](#build-from-source).
+The current developer preview is **v0.1.12**. Use the **Download DMG / Download ZIP** links above, or visit its [release page](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.12). If GitHub’s Assets section stays on “Loading”, the direct links above bypass that section. GitHub’s automatic “Source code” archives contain source, not an installable app. You can also [build from source](#build-from-source).
 
 Previews use an ad-hoc signature. They are **not Developer ID signed or notarized by Apple**. Do not assume CI build success means native interaction tests passed. There is no automatic updater, App Store distribution, Homebrew cask, or Intel build.
 
@@ -41,6 +41,10 @@ Each user must grant permissions on their own Mac. A different ad-hoc build may 
 ### Drawer appearance
 
 With Screen Recording access, the drawer matches the menu bar's background colors and displays original status icons at their native point sizes. Wide items, such as traffic meters and unread counts, retain their width. Icons have no separate card fill or border. Without capture access, system material and app artwork are used. An empty drawer is a compact row; click it once to open Organize Icons.
+
+### Icon movement
+
+On macOS 26, Control Center-hosted icons use a single native event route. Showing an icon first makes room beside the drawer, then reveals the target in the first visible slot. Hiding an icon keeps the rest of the hidden region collapsed. The 0.1.12 device regression completed 34 first-attempt moves; inspected recorded transitions did not reproduce the reported overlap or flash. See [measurements and tested scope](docs/TESTING.md). Other macOS versions and hosts retain the compatibility path.
 
 ### Spacing
 

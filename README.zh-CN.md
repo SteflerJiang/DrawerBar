@@ -2,7 +2,7 @@
 
 **简体中文** · [English](README.md)
 
-**[下载 DMG 安装包（推荐）](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.11/DrawerBar-0.1.11-AppleSilicon.dmg>)** · **[下载 ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.11/DrawerBar-0.1.11-arm64.zip>)** · [v0.1.11 预览版说明](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.11)
+**[下载 DMG 安装包（推荐）](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.12/DrawerBar-0.1.12-AppleSilicon.dmg>)** · **[下载 ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.12/DrawerBar-0.1.12-arm64.zip>)** · [v0.1.12 预览版说明](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.12)
 
 给 Mac 菜单栏加一个小抽屉。常用图标留在外面，偶尔用的收进单行浮栏。
 
@@ -12,7 +12,7 @@
 
 ## 下载
 
-当前可下载版本为 **v0.1.11 开发预览版**。直接点击页首的 **下载 DMG 安装包 / 下载 ZIP**，或进入[对应版本页](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.11)。如果 GitHub 底部的 Assets 区块一直显示 Loading，页首的直达链接仍可使用。GitHub 自动提供的“Source code”是源码压缩包，不是安装包；也可按下文[源码构建](#源码构建)。
+当前可下载版本为 **v0.1.12 开发预览版**。直接点击页首的 **下载 DMG 安装包 / 下载 ZIP**，或进入[对应版本页](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.12)。如果 GitHub 底部的 Assets 区块一直显示 Loading，页首的直达链接仍可使用。GitHub 自动提供的“Source code”是源码压缩包，不是安装包；也可按下文[源码构建](#源码构建)。
 
 预览版使用临时签名，**没有 Developer ID 签名，也没有经过 Apple 公证**。CI 构建通过不代表真实菜单栏交互已通过验收。目前无自动更新、App Store、Homebrew 或 Intel 版本。
 
@@ -41,6 +41,10 @@
 ### 浮栏外观
 
 允许屏幕录制后，浮栏跟随菜单栏的背景配色，原始图标按原尺寸显示，不再使用独立卡片底色或边框。网速、未读数等宽图标保留原宽度。未授权时使用系统材质与应用图标替代。小屉为空时显示紧凑提示，点击整行即可打开图标整理。
+
+### 图标移动
+
+macOS 26 的控制中心托管图标使用单一路由。显示时先在入口旁让出空间，再将目标放入最左侧首个常驻位置；隐藏时保持其他隐藏图标收起。0.1.12 实机回归的 34 次切换均一次成功，检查的录屏过渡帧未复现此前的重叠或闪出。详见[耗时与测试范围](docs/TESTING.md)。其他系统与宿主保留兼容路径。
 
 ### 图标间距
 
