@@ -53,6 +53,7 @@ final class MenuBarService {
     private var visibleItemWindows: [String: CGWindowID] = [:]
     private var hiddenItemWindows: [String: CGWindowID] = [:]
     private(set) var lastMoveVisibilitySamples: [[String: Any]] = []
+    private var activeWindowServerMove: WindowServerMoveSession?
     private let logger = Logger(subsystem: "local.menubarstudio.app", category: "MenuBar")
     private(set) var lastMoveMilliseconds: Double?
     private(set) var lastCursorDisplacement: CGFloat?
@@ -427,7 +428,11 @@ final class MenuBarService {
 
     private func visibleStatusWindows() -> [StatusWindow] {
         let values = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] ?? []
-        return values.compactMap { value in
+        return statusWindows(values)
+    }
+
+    private func statusWindows(_ values: [[String: Any]]) -> [StatusWindow] {
+        values.compactMap { value in
             guard value[kCGWindowLayer as String] as? Int == Int(CGWindowLevelForKey(.statusWindow)),
                   let id = value[kCGWindowNumber as String] as? UInt32,
                   let pid = value[kCGWindowOwnerPID as String] as? Int32,
@@ -448,8 +453,8 @@ final class MenuBarService {
         let hidden = Set(hiddenItemWindows.values)
         return windows.filter {
             !$0.name.hasPrefix("MenuBarStudio.") && !hidden.contains($0.id)
-                && LayoutPolicy.participatesInStatusOrdering(windowName: $0.name,
-                    hostBundleID: NSRunningApplication(processIdentifier: $0.pid)?.bundleIdentifier ?? "")
+                && ($0.name != "AudioVideoModule" || LayoutPolicy.participatesInStatusOrdering(windowName: $0.name,
+                    hostBundleID: NSRunningApplication(processIdentifier: $0.pid)?.bundleIdentifier ?? ""))
                 && $0.frame.width < 1000 && abs($0.frame.midY - arrow.frame.midY) < 4
                 && screen.frame.contains(CGPoint(x: $0.frame.midX, y: height - $0.frame.midY))
         }
@@ -593,6 +598,9 @@ final class MenuBarService {
               conservative: Bool = false) async throws -> MenuBarEntry {
         guard hasAccessibility else { throw ServiceError.permission }
         guard original.canMove else { throw ServiceError.unsupported }
+        if StatusEventDelivery.usesWindowServerRoute(to: original.hostPID) {
+            return try await moveHosted(original, to: placement, collapseAfter: collapseAfter)
+        }
         let started = Date()
         lastMoveTrace = ["directed": 1, "regionExpansions": 0]
         lastMoveMilliseconds = nil
@@ -721,6 +729,47 @@ final class MenuBarService {
             lastMoveTrace["attempts"] = Double(attempt + 1)
         }
         throw ServiceError.notMoved
+    }
+
+    func cancelPendingMove() { activeWindowServerMove?.cancel() }
+
+    private func moveHosted(_ original: MenuBarEntry, to placement: ItemPlacement, collapseAfter: Bool?) async throws -> MenuBarEntry {
+        let started = Date()
+        lastMoveTrace = ["directed": 1, "windowServerOnly": 1, "regionExpansions": 0]
+        lastMoveMilliseconds = nil; lastCursorDisplacement = nil; lastMoveVisibilitySamples = []
+        var entry = original
+        entry.windowID = liveWindows[entry.id] ?? entry.windowID
+        guard statusFrame(named: "MenuBarStudio.Divider", item: divider) != nil,
+              statusFrame(named: "MenuBarStudio.Entrance", item: entrance) != nil,
+              let dividerID = statusWindowIDs["MenuBarStudio.Divider"],
+              let entranceID = statusWindowIDs["MenuBarStudio.Entrance"] else { throw ServiceError.notVisible }
+        let input = WindowServerMove.Input(window: entry.windowID, hostPID: entry.hostPID,
+            sourceFrame: currentFrame(for: entry) ?? entry.frame, divider: dividerID, entrance: entranceID,
+            placement: placement, hiddenPeers: Set(hiddenItemWindows.filter { $0.key != entry.id }.map(\.value)),
+            collapsed: collapsed, started: started)
+        let session = WindowServerMoveSession()
+        activeWindowServerMove = session
+        defer { activeWindowServerMove = nil }
+        let outcome = await Task.detached(priority: .userInitiated) {
+            await WindowServerMove.run(input, session: session)
+        }.value
+        lastMoveTrace = outcome.trace; lastMoveMilliseconds = outcome.milliseconds
+        lastMoveVisibilitySamples = outcome.samples; lastCursorDisplacement = outcome.cursorDisplacement
+        if let error = outcome.error { throw error }
+        guard let frame = outcome.frame else { throw ServiceError.notMoved }
+        entry.frame = frame; entry.placement = placement; entry.placementVerified = true
+        liveWindows[entry.id] = entry.windowID
+        if placement == .visible {
+            visibleItemWindows[entry.id] = entry.windowID; hiddenItemWindows.removeValue(forKey: entry.id)
+        } else {
+            visibleItemWindows.removeValue(forKey: entry.id); hiddenItemWindows[entry.id] = entry.windowID
+        }
+        if let collapseAfter {
+            let changed = collapsed != collapseAfter
+            setCollapsed(collapseAfter)
+            if changed { await settleControls(collapsed: collapseAfter) }
+        }
+        return entry
     }
 
     private func directDrop(for entry: MenuBarEntry, placement: ItemPlacement) -> (CGWindowID, CGPoint)? {

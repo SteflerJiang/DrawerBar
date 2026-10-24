@@ -154,6 +154,37 @@ enum CoreChecks {
         expect(hiddenTopology != LayoutPolicy.statusTopologySignature(observed: [11: .visible, 13: .visible], hiddenWindows: [12]),
                "a newly discovered window still changes the topology")
         print("PASS hidden-window omission stability and real topology change detection")
+        expect(MovementPolicy.usesWindowServerRoute(macOSMajorVersion: 26, hostBundleID: "com.apple.controlcenter"),
+               "macOS 26 hosted status moves use one WindowServer route")
+        expect(!MovementPolicy.usesWindowServerRoute(macOSMajorVersion: 26, hostBundleID: "org.example.app"),
+               "app-owned status windows retain their existing handshake")
+        expect(!MovementPolicy.usesWindowServerRoute(macOSMajorVersion: 25, hostBundleID: "com.apple.controlcenter"),
+               "the new delivery path does not change older OS behavior")
+        expect(!MovementPolicy.usesWindowServerRoute(macOSMajorVersion: 27, hostBundleID: "com.apple.controlcenter"),
+               "an unverified newer menu bar architecture does not inherit the route")
+        expect(MovementPolicy.insertionX(beforeNeighbor: 1000, sourceWidth: 82, sourceIsHidden: true,
+                pickupAtLeftEdge: true) == 999, "left pickup must not subtract the wide source again and drop before the entrance")
+        expect(MovementPolicy.insertionX(beforeNeighbor: 1000, sourceWidth: 26, sourceIsHidden: false,
+                pickupAtLeftEdge: true) == 999, "visible-item repair uses the current first neighbor")
+        expect(MovementPolicy.insertionX(beforeNeighbor: 1000, sourceWidth: 82, sourceIsHidden: true,
+                pickupAtLeftEdge: false) == 917, "the existing right-pickup path retains its source-width adjustment")
+        print("PASS native event route compatibility boundaries")
+        var confirmation = MovementVerification()
+        expect(!confirmation.observe(valid: true), "one valid frame is insufficient")
+        expect(!confirmation.shouldRetry(deadlinePassed: true), "a late valid frame must get confirmation instead of another drag")
+        expect(confirmation.observe(valid: true), "two consecutive valid frames confirm placement")
+        var transient = MovementVerification()
+        expect(!transient.observe(valid: true) && !transient.observe(valid: false), "an invalid frame resets confirmation")
+        expect(transient.shouldRetry(deadlinePassed: true), "an unconfirmed wrong layout may retry after its deadline")
+        expect(!transient.shouldRetry(deadlinePassed: false), "keep observing within the deadline")
+        print("PASS late-frame confirmation without redundant native replay")
+        let hostedEntrance = CGRect(x: 900, y: 0, width: 26, height: 26)
+        expect(MovementPolicy.entranceArtworkIsClear(item: CGRect(x: 921, y: 0, width: 82, height: 26), entrance: hostedEntrance),
+               "native hit padding cannot replay a correctly inserted traffic meter")
+        expect(!MovementPolicy.entranceArtworkIsClear(item: CGRect(x: 919, y: 0, width: 82, height: 26), entrance: hostedEntrance),
+               "actual drawer artwork collision still fails verification")
+        print("PASS native hit padding and actual drawer artwork collision")
+
         print("All core checks passed. No system settings were written.")
     }
 }

@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import MenuBarCore
 
 /// A scoped delivery handshake for a hosted status window. No pointer warping,
 /// drag trajectory or change to the hidden region is involved.
@@ -16,7 +17,20 @@ enum StatusEventDelivery {
     }
 
     @MainActor
+    static func usesWindowServerRoute(to pid: pid_t) -> Bool {
+        MovementPolicy.usesWindowServerRoute(macOSMajorVersion: ProcessInfo.processInfo.operatingSystemVersion.majorVersion,
+            hostBundleID: NSRunningApplication(processIdentifier: pid)?.bundleIdentifier ?? "")
+    }
+
+    @MainActor
     static func send(_ event: CGEvent, to pid: pid_t) async throws {
+        if usesWindowServerRoute(to: pid) {
+            // A hosted status move needs one WindowServer event. Forwarding an
+            // extra copy to the host can independently start its drag preview.
+            // The caller verifies native geometry before committing the change.
+            event.post(tap: .cgSessionEventTap)
+            return
+        }
         let receipt = Receipt(event: event, pid: pid)
         event.setIntegerValueField(.eventSourceUserData, value: receipt.token)
         let context = Unmanaged.passUnretained(receipt).toOpaque()

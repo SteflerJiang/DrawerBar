@@ -15,7 +15,6 @@ STAGING_DIR=$(/usr/bin/mktemp -d "${DELIVERABLES}/.xiaoti-dmg.XXXXXX")
 trap '/bin/rm -rf "$STAGING_DIR"' EXIT
 /usr/bin/ditto "$APP_PATH" "$STAGING_DIR/${APP_NAME}.app"
 /bin/ln -s /Applications "$STAGING_DIR/Applications"
-/bin/cp "$PROJECT_ROOT/docs/安装与试用说明.txt" "$STAGING_DIR/安装与试用说明.txt"
 /bin/cp "$PROJECT_ROOT/docs/INSTALL.txt" "$STAGING_DIR/INSTALL.txt"
 /usr/bin/hdiutil create -quiet -volname "DrawerBar ${APP_VERSION} Preview" -srcfolder "$STAGING_DIR" -fs HFS+ -format UDZO -ov "$DMG_PATH"
 /usr/bin/hdiutil verify -quiet "$DMG_PATH"

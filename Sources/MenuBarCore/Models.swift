@@ -1,7 +1,7 @@
 import Foundation
 import CoreGraphics
 
-public enum ItemPlacement: String, Codable, CaseIterable {
+public enum ItemPlacement: String, Codable, CaseIterable, Sendable {
     case visible, shelf
     public var title: String { self == .visible ? L("常驻菜单栏") : L("收进浮栏") }
 }

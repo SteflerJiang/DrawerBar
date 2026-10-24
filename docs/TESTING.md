@@ -35,7 +35,28 @@ Test on an unlocked desktop, save original configuration, use a disposable helpe
 
 ## Current native regression / 当前实机回归
 
-### Unreleased topology scan change / 未发布的布局扫描修正
+### 0.1.12 native motion / 原生移动验收
+
+The shipped arm64 executable SHA-256 is `c1dc0b4da2f0596529b0eb563bf2614253783809387dc1b25b6091b7f224ea26`. The following checks used that same installed binary on an M1, macOS 26.6.2, one Retina display without a notch. No source-code changes were made after these device tests.
+
+发布程序哈希见上。本轮使用同一个已安装二进制，设备为 M1、macOS 26.6.2、单屏 Retina、无刘海；实测后没有改动程序源码。
+
+- 34 native classification moves covered six shown, six hidden, a lone wide SSRUN meter, a lone ChatGPT icon, and repeated narrow/wide toggles. All 34 succeeded on the first attempt with correct saved/UI classification, a leading entrance, first shown slot, and no protected-system-order violation. Hide times were 228–488 ms; show times were 466–739 ms; overall median was 473 ms. These include pickup, insertion-gap preparation, and two position-confirmation samples; they are not perceived animation-duration measurements.
+- 162 geometry samples detected no full hidden-region expansion or hidden-peer exposure. All 34 logged zero cursor displacement. Geometry alone is not visual evidence.
+- A user-authorized recording captured only the top menu bar, 2880×52 pixels, no audio. It yielded 4,288 delivered frames over 120 seconds (variable capture cadence, not guaranteed 60 fps). All 17 show onsets and 17 hide transitions were reviewed in consecutive-frame contact sheets. No insertion artwork collision, target flash-back, or hidden-peer flash was observed in those inspected transitions. Four fixed-coordinate template interruptions were checked manually: the wide icon remained visible while native layout shifted it a few pixels. This is limited observed coverage, not proof against every transient or future configuration.
+- The same binary opened ChatGPT's original six-item right-click menu using a target-only temporary reveal on the first attempt. The user pressed Esc because Computer Use could not control that source app. Automatic recovery then returned only the target to the drawer in 199 ms, first attempt; the controller became idle. Global shortcut open and Esc close also passed; a shortcut event from System Settings was recorded as opening the drawer.
+- All 19 core groups passed in English and Simplified Chinese; the 168-string audit, arm64 executable, and strict ad-hoc signature verification passed. Core checks include route compatibility, late confirmation without replay, and actual drawer artwork versus padded hit bounds. Normal quit/relaunch passed. The exact original configuration and the original six-icon native order were restored and compared after cold start.
+- Rejected experimental binaries and their timings are excluded from these results. Recordings and derived images were deleted after analysis. No personal diagnostics, configuration, captures, or test helpers are bundled publicly.
+
+34 次切换覆盖六项全显 / 全藏、单个宽图标、单个 ChatGPT 及反复切换，均一次成功；分类、入口靠左、首个插入位置和系统顺序通过。隐藏 228–488ms，显示 466–739ms，中位 473ms，属于含位置校验的事务总耗时。162 个几何样本未见整区展开或同伴露出，鼠标位移记录均为零。
+
+仅顶部菜单栏的授权录像共 4,288 帧，已查看 17 次显示和 17 次隐藏过渡的连续帧，未复现图形重叠、目标闪回或同伴闪出；4 处固定坐标模板中断经人工核对属于宽图标随布局移动。录像并非保证每秒 60 帧，结果仅限检查范围。原右键菜单打开后由用户按 Esc，目标自动收回通过；快捷键和 Esc 收起通过。19 组中英文核心检查、168 条语言审计、架构和签名检查通过；冷启动后原配置与六个图标的原生顺序均已恢复核对。私人录屏和拆帧图分析后删除，不公开上传。
+
+### Historical scan-only candidate / 历史仅减少扫描的候选
+
+The following measurements describe a rejected earlier candidate, not 0.1.12. / 以下为先前候选记录，不代表 0.1.12。
+
+
 
 The retained local executable SHA-256 is `86284f2f07967a5621442518f77354c0a2075ce06c1cedf15621e04f08272563`. On the same M1 / macOS 26.6.2 / single display, 16 native classification moves covered all six shown, all six hidden, and repeated narrow/wide-icon toggles. Every move passed saved/UI classification, a leading entrance, the protected system boundary, no full-region expansion or hidden-peer exposure in geometry samples, and zero cursor displacement. Fourteen moves used one attempt; two needed retries. Observed native move times were 217–1343 ms, median 432 ms. These are measurements, not an improvement claim or an animation pass.
 

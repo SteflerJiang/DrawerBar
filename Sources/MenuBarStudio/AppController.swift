@@ -134,6 +134,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { showSettings(); return true }
     func applicationWillTerminate(_ notification: Notification) {
+        service.cancelPendingMove()
         service.setCollapsed(false)
         shelfPanel?.close()
         for monitor in monitors { NSEvent.removeMonitor(monitor) }

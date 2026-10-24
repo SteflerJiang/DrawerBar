@@ -1,10 +1,14 @@
 # Changelog / 更新记录
 
-## Unreleased — Topology scan reduction / 减少重复布局扫描
+## 0.1.12 — Native motion transactions / 原生图标移动修复
 
-- Keep the verified topology after a successful classification change. Normalize temporarily omitted hidden windows, and exclude the app's controls and OS capture indicator from idle topology checks. Real observed side changes still override the hidden-window cache. / 成功切换后保留已验证布局；隐藏窗口暂时未列出不再触发重复扫描，小屉控件与系统录屏指示器不参与空闲布局签名；实际观察到的分类变化仍优先处理。
-- Add regressions for omitted hidden windows, manual side changes, missing visible windows, and new windows. / 补充隐藏窗口遗漏、真实跨区移动、常驻窗口消失及新窗口的回归检查。
-- **Animation overlap and slow native retries remain unresolved.** Four motion experiments failed acceptance and were withdrawn. This is a scan-reduction change, not a completed animation fix or a new downloadable release. / **动画重叠与原生慢重试仍未解决。** 四个动画实验均未通过验收，已撤回。本次仅减少重复扫描，不代表动画修复完成，也不发布新安装包。
+- On macOS 26 Control Center-hosted icons, deliver each native drag through WindowServer once. Keep legacy routing for other hosts and macOS versions. / macOS 26 的控制中心托管图标使用单一路由，避免重复投递；其他宿主与系统保留兼容路径。
+- Prepare the insertion gap while the picked-up artwork stays offscreen; release the icon only after the drawer outline clears its destination. Preserve the collapsed hidden region. / 在目标图标保持屏外时先让出插入空间，入口图形离开目标位置后再显示图标；不展开整个隐藏区。
+- Perform native movement and position confirmation outside the UI actor. Confirm a late successful position rather than replaying an already completed move. Cancel pending mouse-down safely on normal quit. / 移动和位置验证移到界面线程之外；迟到的成功坐标继续确认，不重复拖动；正常退出时释放未完成的鼠标事件。
+- Retain verified topology after classification changes; stabilize temporarily omitted hidden windows without suppressing real layout changes. / 保留已验证布局，处理隐藏窗口暂时遗漏，同时继续响应真实布局变化。
+- Exact shipped binary: 34 recorded native moves, all first-attempt success; hide 228–488 ms, show 466–739 ms, overall median 473 ms. Reviewed captured transition frames did not reproduce insertion overlap or hidden-peer flashes on the tested M1 / macOS 26.6.2 / single non-notched display. Original right-menu opening and post-Esc target recovery also passed. See [test scope](docs/TESTING.md); this is not certification of other desktops. / 同一发布二进制的 34 次录屏实测均一次成功；当前设备未复现插入重叠或隐藏同伴闪出，原右键菜单打开及 Esc 后自动收回通过，范围见测试文档。
+- Rename the source artwork to `Assets/AppIcon.png` and consolidate both installation languages into `docs/INSTALL.txt`. Keep the Chinese README and localized product name. / 统一素材与安装说明文件名，保留中文 README 和产品本地化名称。
+- Instant spacing adoption without source-app reopening and Apple notarization remain open. / 免重开的即时间距和 Apple 公证仍未完成。
 
 ## 0.1.11 — Native drawer and system boundaries / 原样式浮栏与系统边界修复
 

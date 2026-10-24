@@ -1,21 +1,47 @@
 DrawerBar / 小屉 — Developer Preview
 
-Apple Silicon (M1 or newer), macOS 14+.
-Drag the app to Applications, eject this image, and open the installed copy.
-Current previews use an ad-hoc signature, without Developer ID or Apple notarization.
-Review the release/source and checksum before deciding whether to trust it.
-Apple opening instructions: https://support.apple.com/102445
+Requires Apple Silicon (M1 or later) and macOS 14+.
+Drag the app to Applications, eject the disk image, then open the installed copy.
+This preview is ad-hoc signed, without Developer ID signing or Apple notarization.
+Check the source and download checksum before deciding whether to trust it.
+Apple guidance: https://support.apple.com/102445
 
-Allow Accessibility in System Settings > Privacy & Security.
-Screen Recording is optional, for original menu bar artwork; otherwise app icons are used.
-Each Mac user must authorize their installed copy. Rebuilds may invalidate prior trust.
+Grant Accessibility in System Settings > Privacy & Security to organize icons.
+Screen Recording is optional for original menu bar artwork and matching colors.
+Each user authorizes their own Mac. A rebuilt ad-hoc app may need permission renewal.
 
-Click an icon in Organize Icons to hide/show. Click the drawer or press Command-Shift-Space to open.
-Original click/context menus, single-row hidden icons, pin, auto-close, shortcuts, and spacing presets are available.
-Spacing is saved immediately; running apps on macOS 26 need reopening before their icons update.
-Only explicitly selected apps may be reopened, with user opt-in. No forced quit or logout.
+Click an icon in Organize Icons to hide or show it. Click the menu bar drawer or
+press Command-Shift-Space to open the single-row drawer. Native menu actions,
+pinning, auto-hide, global shortcuts, and four spacing presets are available.
+Spacing saves immediately, but running apps on macOS 26 may require reopening.
+Only explicitly selected apps are reopened with consent; no forced quit or logout.
 
-English / 简体中文 follows macOS app language settings. Chinese product name: 小屉.
-Development preview; other macOS versions, notch and multiple-display behavior need further testing.
-No account, telemetry, networking, or automatic update.
-README and release-specific limitations: https://github.com/SteflerJiang/DrawerBar
+The name follows the macOS app language: DrawerBar in English, 小屉 in Chinese.
+Version 0.1.12 passed the recorded motion regression on one M1 / macOS 26.6.2 Mac.
+Notched Macs, multiple displays, and other macOS versions are not fully tested.
+No account, networking, telemetry, or automatic updater is implemented.
+Full guides and release-specific limitations: https://github.com/SteflerJiang/DrawerBar
+
+简体中文
+
+小屉 / DrawerBar — 开发预览版
+
+要求 Apple Silicon（M1 或更新）与 macOS 14+。
+将应用拖到“应用程序”，推出映像，再打开安装副本。
+当前为临时签名，没有 Developer ID 签名或 Apple 公证。
+请先核对来源、源码和校验值，再决定是否信任。
+Apple 官方打开说明：https://support.apple.com/zh-cn/102445
+
+在“系统设置 → 隐私与安全性 → 辅助功能”授权。
+屏幕录制是可选项，用于显示原菜单栏图像；未授权时使用应用图标。
+每位使用者需在自己的 Mac 上授权，临时签名重编译后旧授权可能失效。
+
+在“图标整理”点击即可收起 / 显示；点击菜单栏抽屉或按 Command-Shift-Space 展开单行浮栏。
+支持原点击 / 右键菜单、固定、自动收起、全局快捷键和四档间距。
+间距选中即保存，但 macOS 26 已运行应用需要重开后更新外观。
+仅在用户主动开启并明确勾选应用后重开；不强制退出、不注销。
+
+中文名“小屉”，英文名“DrawerBar”，跟随 macOS 应用语言设置。
+开发预览版；其他系统版本、刘海和多屏仍需进一步测试。
+没有账号、联网、遥测或自动更新。
+完整说明及各版本限制：https://github.com/SteflerJiang/DrawerBar
