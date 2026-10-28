@@ -35,6 +35,36 @@ Test on an unlocked desktop, save original configuration, use a disposable helpe
 
 ## Current native regression / 当前实机回归
 
+### Local macOS 27.2 menu regression / 本地 macOS 27.2 菜单回归
+
+The installed local executable SHA-256 is `f5ecd106c0355fe8927452b25edf1c637bc984ff93f82e0a49113886667a23b0`. It is an unpublished arm64 build based on `30229a0`, tested on macOS 27.2 (26B123) with Accessibility and single-file ordering access, without Screen Recording. Its dedicated probe passed three hide/show cycles, real drawer opening, temporary reveal of its original two-item menu, observed AX menu opening/closing with automatic rehide, and pause/assertion release. Original configuration was restored byte for byte and the probe terminated normally. The parent workspace contains `outputs/order-rules/native-menu-smoke-confirmed-action.json` and `native-menu-action-evidence.json`.
+
+The native action path resolves source and live hosted AX elements. `AXPress` can return `cannotComplete` while menu tracking continues; that ambiguous result is accepted only when actual menu notifications or a visible native popup confirm delivery, without replaying the action. Closed cached AX trees are not used to infer that a menu is open.
+
+本地已安装程序哈希见上，基于 `30229a0`，未发布新 Release。macOS 27.2（26B123）、arm64，仅授权辅助功能及单个排序文件，屏幕录制关闭。三轮隐藏/显示、真实浮栏打开、临时显示测试图标并打开原两项菜单、菜单关闭后自动收回、暂停并释放限制均通过；原配置逐字节恢复，助手正常退出。原菜单调用会同时查找来源及宿主的实际辅助功能元素；遇到 `AXPress` 无法及时回复时，必须由真实菜单通知或在屏浮窗确认已经送达，不重复点击。
+
+On that same executable, the ordering regression passed three rounds on two displays: a 1512×982 notched primary and a 1440×2560 secondary. Dedicated icons occupied 16-point and 44-point native slots. Each hide checked a leading entrance, rightward movement by the removed slot width for every left peer, and unchanged right peers on both displays. Each show checked that the target was still hidden during space reservation, that the visual entrance stayed at its reserved position, and that the revealed target was immediately right of it on both displays. Only test/entrance weights were restored afterward, with unrelated application weights preserved; original classification was restored byte for byte. See `outputs/order-rules/native-order-smoke-current.json` in the parent workspace. The 21 CoreChecks groups, 181-string localization audit, release compilation, arm64 architecture and strict ad-hoc signature verification passed.
+
+同一程序在 1512×982 刘海主屏及 1440×2560 副屏完成三轮排序检查，专用窄/宽图标实际占位分别为 16pt / 44pt。逐屏核对入口最左、隐藏后左侧同伴按目标宽度右移、右侧同伴不动；显示时先在目标仍隐藏的状态预留空位，入口保持在预留位置，目标紧邻入口右侧。结束后仅恢复测试与入口排序值，其他应用数值保持不变，分类逐字节恢复。21 组核心检查、181 条双语资源审计、Release 构建、arm64 架构与严格临时签名校验通过。
+
+This remains limited to dedicated probes on the current Mac. It does not establish support for every third-party menu, custom popover, display topology change, login, or frame-by-frame animation. Items are grouped by source application. A notched display must have enough usable space before an item is revealed; otherwise the hidden classification is retained. Some Apple dynamic modules can disappear while visibility restrictions are active, and the right-hand system area temporarily releases those restrictions.
+
+覆盖范围限于当前 Mac 的专用测试助手，不代表全部第三方菜单、自定义浮窗、屏幕拓扑切换、登录或逐帧动画已验收。同一应用的图标一起切换；刘海屏显示前需要留有足够空间，空间不足时保留隐藏分类。部分 Apple 动态模块在限制期间可能暂时消失；操作菜单栏右侧系统区域时会暂时解除限制。
+
+### Earlier macOS 27.2 visibility build / 较早的 macOS 27.2 隐藏构建
+
+The local candidate executable SHA-256 is `8714576a507236b2709c29c2970ab7c39a88da1b770875bb5ebe865664ac1b67`. This is an untagged local build based on commit `30229a0`, not a new published release. Tests ran on macOS 27.2 (26B123), arm64, from `/Applications/DrawerBar.app`, with Accessibility granted and Screen Recording denied.
+
+The dedicated `local.drawerbar.probe` helper was discovered through Accessibility. Three hide/show cycles passed with two confirming MenuBarAgent drawn-owner observations per movement. The real drawer panel opened with the hidden helper. A drawer action temporarily revealed the helper, opened its original two-item menu, received actual AX menu-open/menu-close notifications, and automatically hid it again. Releasing the assertion restored the helper. The helper exited normally, and its original configuration snapshot was restored byte for byte. The report is `outputs/macos27/native-smoke.json` in the parent workspace. App state was idle afterward, with no temporary item and no active restriction.
+
+The native app uses source identities and a temporary visibility assertion; per-item WindowServer windows are not required. Closed AX menu trees and missing popup-window records are not treated as menu tracking: AX notifications are observed instead. The 20 CoreChecks groups, 172-string localization audit, release compilation, and strict ad-hoc signature verification passed.
+
+This covers one helper app on this macOS build, not arbitrary third-party menus or frame-by-frame animation. The adapter groups items by app, uses app artwork in the drawer, and leaves physical ordering to Command-drag. Some Apple dynamic modules may disappear while the restriction is active. The right-hand system area temporarily releases restrictions for system panels. Display topology changes, login, custom popovers, and other OS builds remain unverified.
+
+本地候选程序哈希见上，基于 `30229a0`，没有发布新 Release。macOS 27.2（26B123）、arm64、安装于 `/Applications`，仅授权辅助功能，屏幕录制关闭。专用测试图标完成三轮收起/显示，每次移动均核对 MenuBarAgent 实际绘制来源的两次连续采样；浮栏、临时显示原图标、原两项菜单打开/关闭通知、自动收回和释放白名单恢复显示均通过。测试助手正常退出，原配置逐字节恢复，结束后控制器空闲、无临时图标、无活动限制。20 组核心检查、172 条语言检查、Release 构建与严格临时签名校验通过。
+
+覆盖范围限于这台 Mac 和测试助手，不代表所有第三方原菜单、自定义浮窗、逐帧动画、登录及多屏切换都已验收。同一应用的图标一起隐藏，浮栏使用应用图标，物理顺序交给系统 ⌘ 拖动；系统右侧区域会暂时解除隐藏，部分 Apple 动态模块在限制期间可能暂时消失。
+
 ### 0.1.12 native motion / 原生移动验收
 
 The shipped arm64 executable SHA-256 is `c1dc0b4da2f0596529b0eb563bf2614253783809387dc1b25b6091b7f224ea26`. The following checks used that same installed binary on an M1, macOS 26.6.2, one Retina display without a notch. No source-code changes were made after these device tests.

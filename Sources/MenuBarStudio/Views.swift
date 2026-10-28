@@ -117,6 +117,12 @@ struct ItemsView: View {
             if !model.conflictingManagerNames.isEmpty {
                 NoticeView(text: L("检测到同时运行的 %@。若图标位置反复变化，可暂停其中一款工具的整理。", model.conflictingManagerNames.joined(separator: ", ")))
             }
+            if model.service.usesNative27 {
+                NoticeView(text: L("macOS 27 按应用收起图标，浮栏显示应用图标；同一应用的多个图标一起切换。访问右侧系统区域时会暂时展开。"))
+                if !model.service.nativeLayoutAccessAvailable {
+                    Button(L("授权菜单栏排序文件")) { model.requestNativeOrderingAccess() }
+                }
+            }
             if model.paused { NoticeView(text: L("整理已暂停：图标暂时显示在原菜单栏，分类和浮栏顺序仍然保留。")) }
             PlacementZone(placement: .visible)
             PlacementZone(placement: .shelf)

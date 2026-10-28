@@ -9,6 +9,49 @@ enum CoreChecks {
         guard value() else { fatalError("FAIL: \(message)") }
     }
     static func main() throws {
+        let nativeAllowed = NativeVisibilityPolicy.allowedBundles(
+            running: ["org.example.hidden", "org.example.visible", "com.apple.controlcenter", "local.menubarstudio.app"],
+            hidden: ["org.example.hidden", "com.apple.controlcenter", "local.menubarstudio.app"],
+            ownBundle: "local.menubarstudio.app")
+        expect(!nativeAllowed.contains("org.example.hidden"), "native allow-list excludes the requested hidden app")
+        expect(nativeAllowed.isSuperset(of: ["org.example.visible", "com.apple.controlcenter", "local.menubarstudio.app"]),
+               "native allow-list preserves other apps, system agents and the recovery entrance")
+        expect(NativeVisibilityPolicy.allowedBundles(running: ["org.example.new"], hidden: [], ownBundle: "local.menubarstudio.app")
+            .contains("org.example.new"), "new applications stay visible by default")
+        print("PASS macOS 27 native allow-list and protected recovery entrance")
+        let ownKey = "status:local.menubarstudio.app::MenuBarStudio.Entrance"
+        let aKey = "status:org.example.a::Item-0"
+        let bKey = "status:org.example.b::Item-0"
+        let positionTable = [ownKey: 475.0, aKey: 342.0, bKey: 228.0,
+            "status:org.stopped::Item-0": 99999.0, "module:AudioVideoModule": 9000.0, "module:WiFi": 206.0]
+        let liveOwners: Set<String> = ["local.menubarstudio.app", "org.example.a", "org.example.b"]
+        expect(NativeBarOrderPolicy.pinEntrance(positions: positionTable, entrance: ownKey, activeOwners: liveOwners) == [:],
+            "stopped apps and the protected privacy indicator do not displace the entrance")
+        let insertion = NativeBarOrderPolicy.insertAfterEntrance(positions: positionTable, entrance: ownKey,
+            targets: [bKey], activeOwners: liveOwners, visibleOwners: ["org.example.a"])!
+        expect(insertion[bKey]! < positionTable[ownKey]! && insertion[bKey]! > positionTable[aKey]!,
+            "shown item is inserted between entrance and the first remaining item")
+        expect(insertion[aKey] == nil && insertion["module:WiFi"] == nil,
+            "insertion never rewrites peer or system weights")
+        var newlyDisplaced = positionTable
+        newlyDisplaced["status:org.new::Item-0"] = 600
+        let repin = NativeBarOrderPolicy.pinEntrance(positions: newlyDisplaced, entrance: ownKey,
+            activeOwners: liveOwners.union(["org.new"]))!
+        expect(repin[ownKey]! > 600 && repin.count == 1, "new live icons leave entrance pinned left without changing peers")
+        let multi = NativeBarOrderPolicy.insertAfterEntrance(positions: positionTable.merging(
+            ["status:org.example.b::Second": 227.0], uniquingKeysWith: { _, value in value }), entrance: ownKey,
+            targets: [bKey, "status:org.example.b::Second"], activeOwners: liveOwners, visibleOwners: ["org.example.a"])!
+        expect(multi[bKey]! > multi["status:org.example.b::Second"]! && multi["status:org.example.b::Second"]! > 342,
+            "all icons of the incoming app form one ordered block immediately after entrance")
+        let arrowBox = CGRect(x: 100, y: 0, width: 26, height: 24)
+        let adjacent = CGRect(x: 126, y: 0, width: 96, height: 24)
+        expect(NativeBarOrderPolicy.isImmediateRight(entrance: arrowBox, target: adjacent,
+            peers: [CGRect(x: 222, y: 0, width: 24, height: 24)]), "wide shown icon occupies the next slot")
+        expect(!NativeBarOrderPolicy.isImmediateRight(entrance: arrowBox,
+            target: CGRect(x: 250, y: 0, width: 24, height: 24), peers: [adjacent]), "a visible peer before the target fails verification")
+        expect(!NativeBarOrderPolicy.isLeading(entrance: arrowBox,
+            peers: [CGRect(x: 60, y: 0, width: 24, height: 24)]), "a peer left of the entrance fails verification")
+        print("PASS macOS 27 entrance pinning, adjacent insertion, wide items and peer preservation")
         expect(L10n.text("小屉", language: "en") == "DrawerBar", "English brand comes from packaged resources")
         expect(L10n.text("小屉", language: "zh-Hans") == "小屉", "Chinese brand remains unchanged")
         expect(L10n.text("屏幕录制 · 可选", language: "en") == "Screen Recording · Optional", "permission explanation is localized")

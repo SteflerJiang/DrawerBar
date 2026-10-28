@@ -29,6 +29,14 @@ Each user must grant permissions on their own Mac. A different ad-hoc build may 
 
 ## Use
 
+### macOS 27 adapter
+
+The local source adds a separate macOS 27 backend. It discovers source apps through Accessibility and holds a temporary MenuBarAgent visibility allow-list, instead of relying on individual WindowServer windows or an oversized divider. Run `/Applications/DrawerBar.app`. An ad-hoc rebuild may require removing the old Accessibility entry and adding the installed copy again. Screen Recording is not required for this hiding path.
+
+The local ordering build asks you to select `~/Library/Group Containers/com.apple.MenuBar/Library/Preferences/com.apple.MenuBar.plist` using the ordering access button. The grant covers that file; a backup is kept in `~/Library/Application Support/MenuBarStudio/native-layout-original.plist`. The entrance stays leftmost; hiding an item right-packs the icons to its left, and showing an item first reserves space to insert it immediately right of the entrance. Ordering changes touch the entrance and target app only; other apps' relative order and system module settings are preserved. Three native hide/show cycles passed on the current two-display setup. Consult `docs/TESTING.md` for the tested binary and limits; this is an unpublished local build.
+
+Items are grouped by app; multiple icons from one app switch together. The drawer currently uses app artwork. Using the right-hand system area temporarily releases the restriction so Notification Center remains accessible. Some Apple dynamic modules may disappear while the restriction is active and return on release; their settings are not rewritten or unloaded. Normal quit and process exit release the temporary assertion; saved ordering persists. This uses a private system interface that may change in an OS update, with runtime availability checks.
+
 - **Organize Icons:** click an icon to switch between **In the Menu Bar** and **In the Drawer**, or drag between groups. New icons stay visible by default. System items are managed in macOS System Settings.
 - **Open the drawer:** click DrawerBar's outline drawer icon in the menu bar, or press **⌘⇧Space**. Hidden icons stay in a single row. If they exceed the screen's available width, scroll horizontally; they do not wrap.
 - **Use an icon:** left-click for its original action; right-click for its original context menu when the source app supports one. The current source temporarily brings only that target into the menu bar and returns it after its menu closes. Failure leaves an actionable error rather than silently saving a wrong category.

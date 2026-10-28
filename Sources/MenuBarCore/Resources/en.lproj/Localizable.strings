@@ -105,6 +105,18 @@
 "未固定" = "Not pinned";
 "未授权" = "Not allowed";
 "未能将小屉入口放到常驻图标左侧，请刷新后重试。" = "Could not place DrawerBar to the left of visible icons. Refresh and try again.";
+"系统未提供菜单栏窗口信息，已保持图标展开。请在权限与帮助中检查屏幕录制权限，然后重新打开小屉。" = "The system did not provide menu bar window information. Icons remain expanded. Check Screen Recording access in Permissions & Help, then reopen DrawerBar.";
+"当前系统未提供独立的菜单栏窗口，本版本暂无法整理图标。图标保持展开，需要适配新版菜单栏接口。" = "This system does not expose individual menu bar windows, so this version cannot organize icons. Icons remain expanded. Support for the new menu bar interface is required.";
+"macOS 27 需要从应用程序文件夹运行小屉，才能可靠隐藏和恢复图标。" = "On macOS 27, run DrawerBar from Applications to reliably hide and restore icons.";
+"菜单栏排序文件" = "Menu Bar Layout File";
+"请选择 com.apple.MenuBar.plist，允许小屉读取和调整图标顺序。修改前会备份，仅访问这个文件。" = "Choose com.apple.MenuBar.plist to let DrawerBar read and adjust icon order. It backs up the file before changes and accesses only this file.";
+"授权排序" = "Allow Ordering";
+"请先授权菜单栏排序文件，才能固定入口并按顺序隐藏或显示图标。" = "Allow access to the menu bar layout file to pin the entrance and hide or show icons in order.";
+"菜单栏排序文件已变化或写入未确认，本次没有继续调整，请刷新重试。" = "The layout file changed or its write was not confirmed. Adjustment stopped. Refresh and try again.";
+"尚未找到这个图标的排序记录，请刷新后重试。" = "This icon does not yet have a matching order record. Refresh and try again.";
+"系统尚未确认入口和相邻图标的位置，本次分类未保存。" = "The system has not confirmed the entrance and neighboring icon positions. The classification was not saved.";
+"授权菜单栏排序文件" = "Allow Menu Bar Layout Access";
+"macOS 27 按应用收起图标，浮栏显示应用图标；同一应用的多个图标一起切换。访问右侧系统区域时会暂时展开。" = "On macOS 27, icons are grouped by app and the drawer uses app artwork. All icons from one app switch together. Using the right-hand system area temporarily reveals hidden icons.";
 "未能恢复 %@ 的位置：%@" = "Could not restore %@: %@";
 "未能重新收起 %@，已保留在菜单栏，可在图标整理中重试。" = "Could not return %@ to the drawer. It remains in the menu bar. Try again in Organize Icons.";
 "未选中" = "Not selected";
@@ -167,3 +179,4 @@
 "需要辅助功能权限才能移动或操作其他应用的图标。" = "Accessibility permission is required to move or use other apps' menu bar icons.";
 "默认间隔" = "System Default";
 "鼠标离开浮栏后开始计时，固定或操作菜单时暂停。" = "Starts when the pointer leaves the drawer. Paused while pinned or using a menu.";
+"当前屏幕菜单栏空间不足，请先收起其他图标，再显示此图标。" = "There is not enough menu bar space on this display. Hide another icon before showing this one.";

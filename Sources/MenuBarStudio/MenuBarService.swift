@@ -24,8 +24,19 @@ struct MenuBarEntry: Identifiable {
 
 @MainActor
 final class MenuBarService {
+    private let native27: NativeMenuBar27? = ProcessInfo.processInfo.operatingSystemVersion.majorVersion == 27 ? NativeMenuBar27() : nil
+    var usesNative27: Bool { native27 != nil }
     var divider: NSStatusItem?
-    var entrance: NSStatusItem?
+    var entrance: NSStatusItem? { didSet { native27?.entrance = entrance } }
+    var nativeLayoutAccessAvailable: Bool { native27?.layoutStore.available ?? true }
+    func requestNativeLayoutAccess() async -> Bool { await native27?.layoutStore.requestAccess() ?? false }
+    func nativeLayoutPositions() throws -> [String: Double] { try native27?.layoutStore.read() ?? [:] }
+    func restoreNativeLayout(_ baseline: [String: Double], owners: Set<String>) throws {
+        guard let native27 else { return }
+        let current = try native27.layoutStore.read()
+        let touched = Set(current.keys.filter { NativeBarOrderPolicy.owner(of: $0).map { owners.contains($0) } ?? false })
+        try native27.layoutStore.apply(baseline.filter { touched.contains($0.key) }, removing: touched.subtracting(baseline.keys))
+    }
     lazy var entranceImage: NSImage = {
         let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { _ in
             NSColor.black.setStroke()
@@ -49,6 +60,9 @@ final class MenuBarService {
     private var sourceFrames: [(CGRect, pid_t)] = []
     private var statusWindowIDs: [String: CGWindowID] = [:]
     private var activeNativeMenuIDs = Set<UInt32>()
+    private var activeNativeMenuPID: pid_t?
+    private var nativeMenuTracking: NativeMenuTracking?
+    var nativeMenuObserverAvailable: Bool { nativeMenuTracking?.available ?? false }
     private var liveWindows: [String: CGWindowID] = [:]
     private var visibleItemWindows: [String: CGWindowID] = [:]
     private var hiddenItemWindows: [String: CGWindowID] = [:]
@@ -65,6 +79,7 @@ final class MenuBarService {
     var hasScreenCapture: Bool { CGPreflightScreenCaptureAccess() }
     var boundaryX: CGFloat? { statusFrame(named: "MenuBarStudio.Divider", item: divider)?.minX }
     var entranceAnchor: CGRect {
+        if native27 != nil, let frame = entrance?.button?.window?.frame, frame.height > 0 { return frame }
         if let frame = statusFrame(named: "MenuBarStudio.Entrance", item: entrance) {
             return cocoaRect(fromCG: frame)
         }
@@ -135,7 +150,21 @@ final class MenuBarService {
         }.value
     }
 
-    func setCollapsed(_ value: Bool) {
+    var controlMetadataAvailable: Bool {
+        if let native27 { return native27.available }
+        guard let arrow = statusFrame(named: "MenuBarStudio.Entrance", item: entrance),
+              let edge = statusFrame(named: "MenuBarStudio.Divider", item: divider) else { return false }
+        return arrow.width > 0 && arrow.height > 0 && edge.width > 0 && edge.height > 0
+    }
+
+    func setCollapsed(_ requested: Bool) {
+        if let native27 {
+            native27.setCollapsed(requested)
+            collapsed = requested; collapseInitialized = true
+            return
+        }
+        // Keep icons reachable if the OS withholds the hosted control windows.
+        let value = requested && controlMetadataAvailable
         guard !collapseInitialized || value != collapsed else { return }
         collapseInitialized = true
         collapsed = value
@@ -143,6 +172,7 @@ final class MenuBarService {
     }
 
     func discover(existing: [MenuBarEntry] = [], config: UserConfiguration) -> [MenuBarEntry] {
+        if let native27 { return native27.discover(frames: sourceFrames, existing: existing, config: config) }
         statusWindowIDs = [:]
         let info = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] ?? []
         var counts: [String: Int] = [:]
@@ -217,6 +247,7 @@ final class MenuBarService {
     /// A cheap topology check. Dynamic traffic text changing width on the same side
     /// does not trigger another AX scan or image capture.
     func layoutSignature() -> String? {
+        if native27 != nil { return nil }
         guard let values = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]],
               let edge = statusFrame(named: "MenuBarStudio.Divider", item: divider) else { return nil }
         var observed: [UInt32: ItemPlacement] = [:]
@@ -284,6 +315,7 @@ final class MenuBarService {
     }
 
     func capture(_ entries: [MenuBarEntry], force: Bool = false) async -> [CGWindowID: NSImage] {
+        if native27 != nil { return [:] }
         guard hasScreenCapture else { return [:] }
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: false)
@@ -337,6 +369,7 @@ final class MenuBarService {
     }
 
     func currentFrame(for entry: MenuBarEntry) -> CGRect? {
+        if let native27 { return native27.currentFrame(entry) }
         guard let value = windowInfo(liveWindows[entry.id] ?? entry.windowID),
               let dict = value[kCGWindowBounds as String] as? [String: Any] else { return nil }
         return CGRect(dictionaryRepresentation: dict as CFDictionary)
@@ -461,6 +494,7 @@ final class MenuBarService {
     }
 
     func visibleItemsCrossingProtectedBoundary() -> [String] {
+        if native27 != nil { return [] }
         let zone = visibleZoneWindows(visibleStatusWindows())
         let managed = Set(visibleItemWindows.values)
         let protected = zone.filter { !managed.contains($0.id) }.map(\.frame)
@@ -489,6 +523,12 @@ final class MenuBarService {
     /// route as classification. Never expand the hidden region or sweep a cursor.
     func ensureLeadingEntrance() async throws {
         guard hasAccessibility else { return }
+        if let native27 {
+            guard native27.available else { throw ServiceError.windowMetadataUnavailable }
+            try await native27.ensureLeading()
+            return
+        }
+        guard controlMetadataAvailable else { throw ServiceError.windowMetadataUnavailable }
         let windows = visibleStatusWindows()
         if collapsed ? firstVisibleControl(windows) : leadingControls(windows) { return }
         guard let arrow = windows.first(where: { $0.name == "MenuBarStudio.Entrance" }) else { throw ServiceError.notVisible }
@@ -541,6 +581,7 @@ final class MenuBarService {
     }
 
     func arrangementSnapshot(_ entries: [MenuBarEntry]) -> [String: Any] {
+        if let native27 { return native27.snapshot }
         let windows = visibleStatusWindows()
         guard let arrow = windows.first(where: { $0.name == "MenuBarStudio.Entrance" }) else { return ["observed": false] }
         let edge = windows.first(where: { $0.name == "MenuBarStudio.Divider" })
@@ -567,6 +608,21 @@ final class MenuBarService {
                     } else { item["observed"] = false }
                     return item
                 }]
+    }
+
+    func discoveryDiagnostics() -> [String: Any] {
+        let values = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] ?? []
+        return ["sourceFrameCount": sourceFrames.count,
+                "statusLayer": Int(CGWindowLevelForKey(.statusWindow)),
+                "ownEntranceWindow": entrance?.button?.window?.windowNumber ?? -1,
+                "ownDividerWindow": divider?.button?.window?.windowNumber ?? -1,
+                "screenCaptureAllowed": hasScreenCapture,
+                "controlMetadataAvailable": controlMetadataAvailable,
+                "statusWindowCount": statusWindows(values).count]
+    }
+
+    func updateNativeSystemAccess() {
+        native27?.updateSystemAccess(panelOpen: nativeMenuOpen())
     }
 
     private func knownReadyEntry(_ original: MenuBarEntry) async -> MenuBarEntry? {
@@ -598,6 +654,12 @@ final class MenuBarService {
               conservative: Bool = false) async throws -> MenuBarEntry {
         guard hasAccessibility else { throw ServiceError.permission }
         guard original.canMove else { throw ServiceError.unsupported }
+        if let native27 {
+            let started = Date()
+            defer { lastMoveMilliseconds = Date().timeIntervalSince(started) * 1000 }
+            lastMoveTrace = ["menuBarAgent": 1]; lastMoveVisibilitySamples = []; lastCursorDisplacement = 0
+            return try await native27.move(original, to: placement, collapsed: collapseAfter ?? collapsed)
+        }
         if StatusEventDelivery.usesWindowServerRoute(to: original.hostPID) {
             return try await moveHosted(original, to: placement, collapseAfter: collapseAfter)
         }
@@ -822,6 +884,29 @@ final class MenuBarService {
 
     func click(_ entry: MenuBarEntry, right: Bool = false, modifiers: CGEventFlags = []) async throws {
         guard hasAccessibility else { throw ServiceError.permission }
+        if let native27 {
+            guard modifiers.isEmpty else { throw ServiceError.unsupported }
+            let before = menuWindowIDs()
+            nativeMenuTracking?.stop()
+            let tracking = NativeMenuTracking(pid: entry.pid)
+            nativeMenuTracking = tracking
+            lastNativeMenuObserved = false
+            lastNativeMenuItemCount = 0
+            lastClickMechanism = ""
+            let delivery = try await native27.press(entry, right: right)
+            for _ in 0..<10 {
+                if tracking.observedOpen { break }
+                try? await Task.sleep(nanoseconds: 20_000_000)
+            }
+            activeNativeMenuIDs = menuWindowIDs().subtracting(before)
+            activeNativeMenuPID = entry.pid
+            lastNativeMenuObserved = tracking.observedOpen || !activeNativeMenuIDs.isEmpty || nativePopupVisible(ownedBy: entry.pid)
+            lastNativeMenuItemCount = tracking.itemCount
+            if delivery == .cannotComplete && !lastNativeMenuObserved { throw ServiceError.notVisible }
+            lastClickMechanism = "accessibility-macOS27"
+            if right && !lastNativeMenuObserved { throw ServiceError.contextMenuUnavailable }
+            return
+        }
         // The controller temporarily reveals only this item when necessary.
         // No global divider expansion is part of native menu activation.
         let frame = try await settledClickableFrame(for: entry)
@@ -998,7 +1083,8 @@ final class MenuBarService {
                   value[kCGWindowOwnerPID as String] as? Int32 != getpid(),
                   let id = value[kCGWindowNumber as String] as? UInt32,
                   let bounds = value[kCGWindowBounds as String] as? [String: Any],
-                  let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary), rect.width > 60, rect.height > 40 else { return nil }
+                  let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary), rect.width > 0, rect.height > 0,
+                  layer == Int(CGWindowLevelForKey(.popUpMenuWindow)) || (rect.width > 60 && rect.height > 40) else { return nil }
             return id
         })
     }
@@ -1023,15 +1109,43 @@ final class MenuBarService {
     }
 
     func nativeMenuOpen() -> Bool {
-        !menuWindowIDs().intersection(activeNativeMenuIDs).isEmpty
+        if native27 != nil, let pid = activeNativeMenuPID {
+            // AX can retain a closed menu tree, and reading its children can
+            // populate it again. Only actual onscreen popup windows hold open.
+            let open = nativeMenuTracking?.isOpen == true || nativePopupVisible(ownedBy: pid)
+                || !menuWindowIDs().intersection(activeNativeMenuIDs).isEmpty
+            if !open { activeNativeMenuPID = nil }
+            return open
+        }
+        return !menuWindowIDs().intersection(activeNativeMenuIDs).isEmpty
+    }
+
+    private func nativePopupVisible(ownedBy pid: pid_t) -> Bool {
+        let values = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] ?? []
+        return values.contains {
+            $0[kCGWindowOwnerPID as String] as? pid_t == pid
+                && $0[kCGWindowLayer as String] as? Int == Int(CGWindowLevelForKey(.popUpMenuWindow))
+        }
     }
 }
 
 enum ServiceError: LocalizedError {
-    case permission, unsupported, notVisible, notMoved, contextMenuUnavailable
+    case permission, unsupported, notVisible, notMoved, contextMenuUnavailable, windowMetadataUnavailable, nativeInstallationRequired
+    case nativeLayoutAccessRequired, nativeLayoutConflict, nativeLayoutUnmapped, nativeLayoutUnconfirmed, nativeLayoutNoSpace
     var errorDescription: String? {
         switch self {
         case .permission: return L("需要辅助功能权限才能移动或操作其他应用的图标。")
+        case .nativeLayoutAccessRequired: return L("请先授权菜单栏排序文件，才能固定入口并按顺序隐藏或显示图标。")
+        case .nativeLayoutConflict: return L("菜单栏排序文件已变化或写入未确认，本次没有继续调整，请刷新重试。")
+        case .nativeLayoutUnmapped: return L("尚未找到这个图标的排序记录，请刷新后重试。")
+        case .nativeLayoutUnconfirmed: return L("系统尚未确认入口和相邻图标的位置，本次分类未保存。")
+        case .nativeLayoutNoSpace: return L("当前屏幕菜单栏空间不足，请先收起其他图标，再显示此图标。")
+        case .nativeInstallationRequired: return L("macOS 27 需要从应用程序文件夹运行小屉，才能可靠隐藏和恢复图标。")
+        case .windowMetadataUnavailable:
+            if ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 27 {
+                return L("当前系统未提供独立的菜单栏窗口，本版本暂无法整理图标。图标保持展开，需要适配新版菜单栏接口。")
+            }
+            return L("系统未提供菜单栏窗口信息，已保持图标展开。请在权限与帮助中检查屏幕录制权限，然后重新打开小屉。")
         case .unsupported: return L("此系统项目暂不支持移动，可在系统设置中管理。")
         case .notVisible: return L("暂时无法定位这个菜单栏图标，请刷新后重试；刘海遮挡项目暂不能代理点击。")
         case .notMoved: return L("系统未确认图标已移动，分类没有保存。可按住 ⌘ 手动拖过分隔线后刷新。")

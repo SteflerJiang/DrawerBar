@@ -1,5 +1,21 @@
 # Troubleshooting / 常见问题
 
+## Ordering access on macOS 27 / macOS 27 排序授权
+
+The ordering candidate needs the user to select `~/Library/Group Containers/com.apple.MenuBar/Library/Preferences/com.apple.MenuBar.plist` through its file picker. Use the ordering access button; if the picker does not locate the file, press Command-Shift-G and paste the path. This is a single-file grant, retained as a bookmark. Rebuilding an ad-hoc executable can separately invalidate Accessibility; remove the old entry and add `/Applications/DrawerBar.app` again. Full Disk Access is not requested. Before writing, the app backs up the original plist to `~/Library/Application Support/MenuBarStudio/native-layout-original.plist` and checks for unrelated changes. A saved ordering number alone does not establish success: the app also confirms MenuBarAgent's actual drawn geometry.
+
+排序候选版需要通过文件选择框授权 `~/Library/Group Containers/com.apple.MenuBar/Library/Preferences/com.apple.MenuBar.plist`。点“授权菜单栏排序文件”；未定位时按 ⌘⇧G 输入路径。仅授权这个文件，并保存书签。临时签名构建变化后，辅助功能需要单独移除旧条目并重新添加 `/Applications/DrawerBar.app`。无需授予完全磁盘访问。修改前会备份原文件到 `~/Library/Application Support/MenuBarStudio/native-layout-original.plist`，并核对是否有无关修改。写入排序值后，还必须核对 MenuBarAgent 的实际绘制位置，才会确认操作成功。
+
+If the app reports insufficient menu bar space, hide another icon before showing the target. On a notched display, the entrance and incoming icon must fit in the usable area to the right of the notch. The app checks this before revealing the target and keeps its hidden classification on failure.
+
+若提示菜单栏空间不足，请先收起另一个图标再显示目标。刘海屏上，入口和新显示图标必须容纳于刘海右侧可用区域；应用会在显示前检查，空间不足时保留原隐藏分类。
+
+## No independent status windows on macOS 27 / macOS 27 缺少独立菜单栏窗口
+
+The legacy movement engine requires individual WindowServer status windows. On the local macOS 27.2 system, the app resolved accessibility source frames but WindowServer returned no status-layer windows; the entrance and divider had placeholder identifiers larger than a `CGWindowID`. The macOS 27 backend now uses Accessibility source identities and a temporary MenuBarAgent allow-list. Run the installed copy from `/Applications`; re-add its current binary to Accessibility after rebuilding. Screen Recording does not repair the legacy architecture and is not required for the native allow-list. Missing runtime classes fail closed by leaving icons visible. Consult TESTING.md for the actual native results and the grouped-by-app limitations.
+
+旧移动引擎依赖 WindowServer 的独立菜单栏窗口。本机 macOS 27.2 中，辅助功能可读到来源位置，但系统返回的菜单栏窗口数为零，入口和分隔线的窗口编号为超出 `CGWindowID` 范围的占位值。macOS 27 新后端改用辅助功能来源身份与 MenuBarAgent 临时显示白名单。请从 `/Applications` 运行安装副本，重编译后重新添加辅助功能授权。屏幕录制不能修复旧架构，也不是新白名单的必需权限。系统接口不可用时保持图标可见。实机结果及按应用分组的限制见 TESTING.md。
+
 ## Permission enabled but shown as denied / 已开启但显示未授权
 
 Confirm the app path and version. Quit duplicate copies and run the installed copy from Applications. Ad-hoc rebuilds can invalidate trust for the old executable. In System Settings, remove only the stale DrawerBar/小屉 entry, add the current installed app, enable it, and reopen if macOS requests. Complete password or Touch ID prompts yourself. Do not reset all TCC permissions or edit macOS permission databases.

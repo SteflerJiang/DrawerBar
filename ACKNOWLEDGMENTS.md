@@ -1,5 +1,7 @@
 # Acknowledgments / 致谢
 
+- [MenuBarHider](https://github.com/happy666End/MenuBarHider), copyright 2026 Saveliy Yudin, MIT, informed the macOS 27 native visibility bridge's Objective-C selector signatures and lifecycle. Its license is retained in `ThirdPartyNotices/MenuBarHider-LICENSE.txt`.
+
 - Apple AppKit, SwiftUI, ScreenCaptureKit, Accessibility, CoreGraphics, Carbon, and ServiceManagement provide platform functionality. SF Symbols and Apple frameworks retain Apple's applicable terms.
 - iBar's public product behavior informed product research. This is an independent implementation and includes no iBar code, screenshots, branding, or assets.
 - [Ice](https://github.com/jordanbaird/Ice) was consulted while researching process/session event routing concepts. No Ice source file, resource, or library is included. Ice has its own license; it is not a dependency of this repository.

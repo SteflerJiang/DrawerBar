@@ -108,6 +108,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         divider.autosaveName = "MenuBarStudio.Divider"
         divider.button?.image = nil
         divider.button?.toolTip = nil
+        if service.usesNative27 { divider.isVisible = false }
         service.entrance = entrance; service.divider = divider
         NotificationCenter.default.addObserver(self, selector: #selector(displayChanged), name: NSApplication.didChangeScreenParametersNotification, object: nil)
         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(woke), name: NSWorkspace.didWakeNotification, object: nil)
@@ -129,6 +130,8 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             // Keep the boundary constant even when the shelf becomes empty;
             // resizing it after the last move can restart WindowServer ordering.
             service.setCollapsed(!paused && accessibility)
+            if CommandLine.arguments.contains("--native-self-check") { startNativeSmokeCheck() }
+            if CommandLine.arguments.contains("--native-order-check") { startNativeOrderCheck() }
         }
     }
 
@@ -230,8 +233,12 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         var snapshot = await discoverReadyEntries(existing: entries)
         do {
             try await service.ensureLeadingEntrance()
-            if message == L("未能将小屉入口放到常驻图标左侧，请刷新后重试。") { message = nil }
+            if message == L("未能将小屉入口放到常驻图标左侧，请刷新后重试。")
+                || message == ServiceError.windowMetadataUnavailable.localizedDescription
+                || message == ServiceError.nativeLayoutAccessRequired.localizedDescription { message = nil }
         }
+        catch ServiceError.windowMetadataUnavailable { message = ServiceError.windowMetadataUnavailable.localizedDescription }
+        catch let error as ServiceError where service.usesNative27 { message = error.localizedDescription }
         catch { message = L("未能将小屉入口放到常驻图标左侧，请刷新后重试。") }
         for index in snapshot.indices {
             if let frame = service.currentFrame(for: snapshot[index]) { snapshot[index].frame = frame }
@@ -279,6 +286,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         lastLayoutSignature = service.layoutSignature()
         if shelfPresented { sizeShelf() }
         recordDiagnostic("layoutSync", extra: ["cause": cause, "collapsed": service.collapsed, "paused": paused,
+            "discovery": service.discoveryDiagnostics(),
             "arrangement": service.arrangementSnapshot(entries),
             "items": entries.filter(\.canMove).map { ["id": $0.id, "placement": $0.placement.rawValue,
                 "observed": $0.placementVerified] as [String: Any] }])
@@ -310,7 +318,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             let entry = result[index]
             let target = config.placement(for: entry.id)
             let newVisible = !isLaunching && config.placements[entry.id] == nil && target == .visible
-            let firstSlot = !newVisible || ((service.arrangementSnapshot(result)["firstRightWindow"] as? Int) == Int(entry.windowID))
+            let firstSlot = service.usesNative27 || !newVisible || ((service.arrangementSnapshot(result)["firstRightWindow"] as? Int) == Int(entry.windowID))
             guard entry.placement != target || !entry.placementVerified || !firstSlot else { continue }
             do {
                 result[index] = try await service.move(entry, to: target)
@@ -583,6 +591,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
     private func tick() {
         if Date().timeIntervalSince(lastPermissionCheck) > 2 { lastPermissionCheck = Date(); checkPermissions() }
         guard busyID == nil, !spacingApplying, !refreshing, !presentingShelf else { return }
+        if temporaryNativeEntry == nil { service.updateNativeSystemAccess() }
         // Observe only stable, idle topology. Our own moves/native menu reveals
         // and a user's in-progress drag must never become a persisted category.
         if NSEvent.pressedMouseButtons == 0,
@@ -619,6 +628,9 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(path)") { NSWorkspace.shared.open(url) }
     }
     func requestScreenPermission() { CGRequestScreenCaptureAccess(); checkPermissions() }
+    func requestNativeOrderingAccess() {
+        Task { if await service.requestNativeLayoutAccess() { await refresh(captureArtwork: false, cause: "layout-access") } }
+    }
 
     private func matchesShortcut(_ event: NSEvent) -> Bool {
         guard config.shortcut != "none", shortcutNotice == nil else { return false }
@@ -651,6 +663,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         result["moveTrace"] = service.lastMoveTrace
         result["clickMechanism"] = service.lastClickMechanism
         result["nativeMenuItemCount"] = service.lastNativeMenuItemCount
+        result["nativeMenuObserverAvailable"] = service.nativeMenuObserverAvailable
         result["entranceWidth"] = service.entranceAnchor.width
         result["entranceTemplate"] = service.entrance?.button?.image?.isTemplate ?? false
         result["dividerArtworkPresent"] = service.divider?.button?.image != nil

@@ -5,12 +5,14 @@ DELIVERABLES="${BUILD_OUTPUT_DIR:-${PROJECT_ROOT:h}/outputs}"
 APP_NAME="${APP_BUNDLE_NAME:-小屉}"
 APP_PATH="${DELIVERABLES}/${APP_NAME}.app"
 cd "$PROJECT_ROOT"
-swift build -c release --arch arm64 --product MenuBarStudio
+# Keep the resource bundle layout expected by localization and app packaging.
+swift build --build-system native -c release --arch arm64 --product MenuBarStudio "$@"
 mkdir -p "$APP_PATH/Contents/MacOS" "$APP_PATH/Contents/Resources"
 cp .build/arm64-apple-macosx/release/MenuBarStudio "$APP_PATH/Contents/MacOS/MenuBarStudio.new"
 mv -f "$APP_PATH/Contents/MacOS/MenuBarStudio.new" "$APP_PATH/Contents/MacOS/MenuBarStudio"
 cp Info.plist "$APP_PATH/Contents/Info.plist"
 cp Assets/AppIcon.icns "$APP_PATH/Contents/Resources/AppIcon.icns"
+/usr/bin/ditto ThirdPartyNotices "$APP_PATH/Contents/Resources/ThirdPartyNotices"
 /usr/bin/ditto .build/arm64-apple-macosx/release/MenuBarStudio_MenuBarCore.bundle "$APP_PATH/Contents/Resources/MenuBarStudio_MenuBarCore.bundle"
 for language in en zh-Hans; do
     /usr/bin/ditto "Resources/${language}.lproj" "$APP_PATH/Contents/Resources/${language}.lproj"
