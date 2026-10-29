@@ -2,7 +2,9 @@
 
 [简体中文](README.zh-CN.md) · **English**
 
-**[Download DMG](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.14/DrawerBar-0.1.14-AppleSilicon.dmg>)** · **[Download ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.14/DrawerBar-0.1.14-arm64.zip>)** · [v0.1.14 preview notes](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.14)
+**[Download DMG](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.15/DrawerBar-0.1.15-AppleSilicon.dmg>)** · **[Download ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.15/DrawerBar-0.1.15-arm64.zip>)** · [v0.1.15 preview notes](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.15)
+
+**Diagnostics preview:** v0.1.15 adds local diagnostic export. A reported Show failure on M4 Pro / macOS 27.2 remains under investigation; this release does not claim to fix it. Reproduce the failure, then use **Permissions & Help → Export Diagnostics…** and review the ZIP before sharing.
 
 A small drawer for your Mac's menu bar. Keep everyday icons visible and tuck less-used ones into a single-row drawer.
 
@@ -12,7 +14,7 @@ Native SwiftUI + AppKit. Built for Apple Silicon. English and Simplified Chinese
 
 ## Download
 
-The current developer preview is **v0.1.14**. Use the **Download DMG / Download ZIP** links above, or visit its [release page](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.14). If GitHub’s Assets section stays on “Loading”, the direct links above bypass that section. GitHub’s automatic “Source code” archives contain source, not an installable app. You can also [build from source](#build-from-source).
+The current developer preview is **v0.1.15**. Use the **Download DMG / Download ZIP** links above, or visit its [release page](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.15). If GitHub’s Assets section stays on “Loading”, the direct links above bypass that section. GitHub’s automatic “Source code” archives contain source, not an installable app. You can also [build from source](#build-from-source).
 
 Previews use an ad-hoc signature. They are **not Developer ID signed or notarized by Apple**. Do not assume CI build success means native interaction tests passed. There is no automatic updater, App Store distribution, Homebrew cask, or Intel build.
 

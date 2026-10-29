@@ -281,6 +281,56 @@ enum CoreChecks {
                "actual drawer artwork collision still fails verification")
         print("PASS native hit padding and actual drawer artwork collision")
 
+        let diagnosticsFixture: [String: Any] = [
+            "icons": [["id": "org.example.app#0", "x": 123.5]],
+            "nested": ["securityScopedBookmark": "DO-NOT-EXPORT", "accessToken": "DO-NOT-EXPORT", "path": "/Users/private-person/Library/test"],
+            "binary": Data([1, 2, 3]), "number": Double.infinity,
+            "error": "Failed at /Users/private-person/Library/test"
+        ]
+        let safeDiagnostics = DiagnosticsPrivacy.sanitize(diagnosticsFixture, home: "/Users/private-person")
+        let safeBytes = try JSONSerialization.data(withJSONObject: safeDiagnostics)
+        let safeText = String(decoding: safeBytes, as: UTF8.self)
+        expect(!safeText.contains("DO-NOT-EXPORT") && !safeText.contains("private-person"), "diagnostics remove nested credentials and home usernames")
+        expect(safeText.contains("org.example.app#0") && safeText.contains("123.5"), "diagnostics retain useful icon identity and geometry")
+        expect(safeText.contains("omitted-data"), "diagnostics omit arbitrary binary data")
+        print("PASS diagnostic privacy filtering, bounded values and JSON-safe geometry")
+
+        let diagnosticTemp = FileManager.default.temporaryDirectory.appendingPathComponent("DrawerBar-ArchiveCheck-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: diagnosticTemp, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: diagnosticTemp) }
+        let support = diagnosticTemp.appendingPathComponent("support")
+        try FileManager.default.createDirectory(at: support, withIntermediateDirectories: false)
+        try Data("DO-NOT-EXPORT".utf8).write(to: support.appendingPathComponent("configuration.json"))
+        try FileManager.default.createSymbolicLink(at: support.appendingPathComponent("last-check.json"), withDestinationURL: support.appendingPathComponent("configuration.json"))
+        let failure: [String: Any] = ["action": "placement", "verified": false, "requestedPlacement": "visible", "failure": ["errorType": "nativeLayoutUnconfirmed"], "bookmark": "DO-NOT-EXPORT"]
+        try JSONSerialization.data(withJSONObject: failure).write(to: support.appendingPathComponent("last-failure.json"))
+        let failedLine = String(decoding: try JSONSerialization.data(withJSONObject: failure), as: UTF8.self)
+        try (failedLine + "\nmalformed\n{\"action\":\"layoutSync\"}\n").write(to: support.appendingPathComponent("diagnostic-history.jsonl"), atomically: true, encoding: .utf8)
+        let zip = diagnosticTemp.appendingPathComponent("diagnostics.zip")
+        try DiagnosticArchive.write(context: safeBytes, support: support, destination: zip)
+        let listZip = Process(); let zipNamesPipe = Pipe()
+        listZip.executableURL = URL(fileURLWithPath: "/usr/bin/unzip"); listZip.arguments = ["-Z1", zip.path]
+        listZip.standardOutput = zipNamesPipe; try listZip.run()
+        let zipNamesBytes = zipNamesPipe.fileHandleForReading.readDataToEndOfFile(); listZip.waitUntilExit()
+        let zipNames = Set(String(decoding: zipNamesBytes, as: UTF8.self).split(separator: "\n").map(String.init))
+        expect(listZip.terminationStatus == 0 && zipNames == ["DrawerBar-Diagnostics/", "DrawerBar-Diagnostics/report.json", "DrawerBar-Diagnostics/READ-ME.txt"], "raw ZIP excludes resource forks, extended metadata and every undeclared file")
+        let unpack = diagnosticTemp.appendingPathComponent("unpacked")
+        let unzip = Process(); unzip.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+        unzip.arguments = ["-x", "-k", zip.path, unpack.path]; try unzip.run(); unzip.waitUntilExit()
+        expect(unzip.terminationStatus == 0, "diagnostic ZIP can actually be extracted")
+        let exportedFolder = unpack.appendingPathComponent("DrawerBar-Diagnostics")
+        let exportedNames = Set(try FileManager.default.contentsOfDirectory(atPath: exportedFolder.path))
+        expect(exportedNames == ["report.json", "READ-ME.txt"], "archive contains only the two declared files")
+        let reportData = try Data(contentsOf: exportedFolder.appendingPathComponent("report.json"))
+        let report = try JSONSerialization.jsonObject(with: reportData) as! [String: Any]
+        let exportedFailure = report["lastFailedOperation"] as? [String: Any]
+        expect(exportedFailure?["requestedPlacement"] as? String == "visible", "last failed show survives a later layout scan")
+        expect(!String(decoding: reportData, as: UTF8.self).contains("DO-NOT-EXPORT"), "raw configuration and credentials never enter the ZIP")
+        expect((report["readWarnings"] as? [String])?.count == 2, "unsafe files and malformed history are reported, not silently trusted")
+        let attributes = try FileManager.default.attributesOfItem(atPath: zip.path)
+        expect((attributes[.posixPermissions] as? NSNumber)?.intValue == 0o600, "export archive is private to the current user")
+        print("PASS real diagnostic ZIP, failure retention, log corruption, symlink exclusion and private output")
+
         print("All core checks passed. No system settings were written.")
     }
 }

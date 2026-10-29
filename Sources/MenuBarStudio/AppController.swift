@@ -42,6 +42,8 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
     @Published var onboardingSelected: String?
     @Published var loginEnabled = false
     @Published var shortcutNotice: String?
+    @Published var exportingDiagnostics = false
+    @Published var diagnosticExportNotice: String?
     @Published var shelfPresented = false
     @Published var shelfAppearance = MenuBarAppearance()
     let service = MenuBarService()
@@ -189,7 +191,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             let menu = NSMenu(); menu.delegate = self
             for (title, selector) in [(L("打开图标整理"), #selector(openItems)), (L("菜单栏外观"), #selector(openAppearance)),
                                        (paused ? L("继续整理") : L("暂停整理，展开全部"), #selector(togglePauseAction)),
-                                       (L("显示首次引导"), #selector(showOnboarding)), (L("退出小屉"), #selector(quit))] {
+                                       (L("显示首次引导"), #selector(showOnboarding)), (L("导出诊断信息…"), #selector(exportDiagnosticsAction)), (L("退出小屉"), #selector(quit))] {
                 let item = NSMenuItem(title: title, action: selector, keyEquivalent: ""); item.target = self; menu.addItem(item)
             }
             service.entrance?.menu = menu
@@ -348,6 +350,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         if shelfPresented { sizeShelf() }
         Task {
             var verified = false
+            var failure: [String: Any] = [:]
             do {
                 let confirmed = try await service.move(entry, to: placement,
                     collapseAfter: !paused && accessibility)
@@ -362,6 +365,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
                 onSuccess?()
             } catch {
                 if let index = entries.firstIndex(where: { $0.id == entry.id }) { entries[index].placement = entry.placement }
+                failure = ["error": error.localizedDescription, "errorType": String(describing: error)]
                 message = error.localizedDescription; service.setCollapsed(!paused && accessibility)
             }
             busyID = nil
@@ -376,7 +380,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             recordDiagnostic("placement", entry: entry, extra: ["verified": verified, "requestedPlacement": placement.rawValue,
                 "operationMilliseconds": Date().timeIntervalSince(started) * 1000,
                 "visibilitySamples": service.lastMoveVisibilitySamples,
-                "arrangement": service.arrangementSnapshot(entries)])
+                "arrangement": service.arrangementSnapshot(entries), "failure": failure])
         }
     }
 
@@ -710,6 +714,9 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
 
     private func recordDiagnostic(_ action: String, entry: MenuBarEntry? = nil, extra: [String: Any] = [:]) {
         var result: [String: Any] = ["action": action, "date": ISO8601DateFormatter().string(from: Date()),
+                                   "appVersion": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown",
+                                   "appBuild": Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown",
+                                   "processID": Int(getpid()),
                                    "shelfPresented": shelfPresented,
                                    "nativeMenuObserved": service.lastNativeMenuObserved]
         result["bundle"] = entry?.bundleID
@@ -732,6 +739,12 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         let url = store.url.deletingLastPathComponent().appendingPathComponent("last-check.json")
         try? data.write(to: url, options: .atomic)
         try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        // Preserve the failed transaction even after later scans/open events.
+        if action == "placement", extra["verified"] as? Bool == false {
+            let failure = url.deletingLastPathComponent().appendingPathComponent("last-failure.json")
+            try? data.write(to: failure, options: .atomic)
+            try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: failure.path)
+        }
         if let compact = try? JSONSerialization.data(withJSONObject: result, options: [.sortedKeys]),
            let line = String(data: compact, encoding: .utf8) {
             let history = url.deletingLastPathComponent().appendingPathComponent("diagnostic-history.jsonl")

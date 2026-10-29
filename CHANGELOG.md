@@ -1,5 +1,13 @@
 # Changelog / 更新记录
 
+## 0.1.15 — Diagnostic export / 诊断信息导出
+
+- Add **Permissions & Help → Export Diagnostics…** and a menu-bar context-menu shortcut. Save a local ZIP; no automatic upload. / 新增“权限与帮助 → 导出诊断信息…”及菜单栏右键入口，仅保存本机 ZIP，不自动上传。
+- Include chip/OS/build, display/notch geometry, permission state, icon identities and arrangements, bounded operation history and the last failed Show/Hide operation. Record insertion phases and position-verification samples without changing the movement algorithm. / 收集芯片与系统、屏幕 / 刘海、权限、图标身份与排列、近期操作和最后一次失败，记录显示插入阶段与位置校验样本，不改变移动算法。
+- Exclude screenshots, recordings, raw preferences/configuration files, serial numbers, permission bookmarks and extended file metadata. Redact home paths; app names and icon arrangements remain visible for diagnosis. / 不打包截图、录屏、原始配置 / 系统偏好、序列号、授权书签或附加文件元数据，用户目录脱敏；为诊断保留应用名称与排列。
+- Local M1 / macOS 27.2 checks passed: real export/save/cancel, export without Accessibility, export with live geometry, one verified hide/show pair, 24 core-check groups, 188-string audit and package signature/content checks. / 本机导出、保存 / 取消、无辅助功能权限导出、实时布局导出、一组隐藏 / 显示、24 组核心检查、188 条语言审计及双安装包签名 / 内容校验通过。
+- **M4 Pro / macOS 27.2 Show failure remains unresolved pending device diagnostics.** Older motion recordings are not certification of this build or of notched/multiple displays. / **M4 Pro / macOS 27.2 显示失败仍待设备日志定位，尚未修复。** 旧版录像不代表本版及刘海 / 多屏验收。
+
 ## 0.1.14 — Faster drawer opening / 浮栏快速打开
 
 - Present the shared icon snapshot before scanning, sorting verification or artwork capture. Refresh optional artwork asynchronously; defer stale-snapshot scans until the drawer is closed and idle. / 先显示现有图标，再异步更新图像；过期扫描推迟到浮栏关闭且空闲后，移除点击路径中的扫描与排序等待。

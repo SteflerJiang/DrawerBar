@@ -1,3 +1,9 @@
+## Export diagnostics / 导出诊断信息
+
+In the 0.1.15 diagnostic preview, use **Permissions & Help → Export Diagnostics…**, or right-click the menu-bar drawer and choose **Export Diagnostics…**. Reproduce the failed Show operation first, wait for the failure, then save the ZIP. Review `report.json` before sharing. It records hardware/OS, screen/notch geometry, permission states, icon identities/arrangements, bounded recent events and the last failed move, with its phase and position-verification samples. It also works without Accessibility access, exporting available saved evidence; unavailable live reads are not considered successful operations. No screenshots, recordings, serial numbers, raw preferences/configuration files or permission bookmarks are included, and nothing is uploaded automatically.
+
+0.1.15 诊断预览版：先复现“显示图标”失败，等转圈结束，再到 **权限与帮助 → 导出诊断信息…**，或右键菜单栏小屉图标选择同名菜单，保存 ZIP 后发送。报告包含应用名称与排列，发送前可检查 `report.json`。记录系统、芯片、屏幕 / 刘海、权限、最近事件及最后一次失败的阶段和位置校验样本；没有辅助功能权限时也能导出已有记录，但不可读不代表操作成功。不含截图、录屏、序列号、原始配置 / 系统偏好文件或授权书签，不会自动上传。较早的历史记录可能来自旧版本，请以事件时间和版本字段为准。
+
 # Troubleshooting / 常见问题
 
 ## Ordering access on macOS 27 / macOS 27 排序授权

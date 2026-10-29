@@ -180,3 +180,11 @@
 "默认间隔" = "System Default";
 "鼠标离开浮栏后开始计时，固定或操作菜单时暂停。" = "Starts when the pointer leaves the drawer. Paused while pinned or using a menu.";
 "当前屏幕菜单栏空间不足，请先收起其他图标，再显示此图标。" = "There is not enough menu bar space on this display. Hide another icon before showing this one.";
+
+"导出诊断信息" = "Export Diagnostics";
+"导出诊断信息…" = "Export Diagnostics…";
+"包含应用名称、图标位置及错误；不含截图、录屏或授权凭证，仅保存到本机。" = "Includes app names, icon positions and errors. No screenshots, recordings or permission credentials. Saved locally only.";
+"诊断信息无法序列化，请重试。" = "Diagnostics could not be serialized. Please try again.";
+"诊断包已保存，可将文件发送给开发者。" = "Diagnostics saved. You can send the file to the developer.";
+"导出失败：%@" = "Export failed: %@";
+"请先复现一次显示或隐藏失败，再立即导出。发送前可检查 report.json，不会自动上传。" = "Reproduce the failed Show/Hide operation, then export immediately. Review report.json before sharing. Nothing is uploaded automatically.";

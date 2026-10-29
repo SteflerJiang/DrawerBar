@@ -35,6 +35,18 @@ Test on an unlocked desktop, save original configuration, use a disposable helpe
 
 ## Current native regression / 当前实机回归
 
+### 0.1.15 diagnostic export / 诊断导出验收
+
+Shipped executable SHA-256: `a4987cbba9d1edc7e87561bfda1a1bce76364e3eebd8e2848c7c33dae71f92ca`. Tested on M1 / macOS 27.2 (26B123), single non-notched Retina display. The published archives contain the same installed, tested executable; only documentation/packaging changed afterward.
+
+- 24 core-check groups passed, including extraction of a real diagnostic ZIP, nested credential/home-path redaction, JSON-safe values, malformed history handling, symlink exclusion, restrictive archive permissions and retention of a failed Show after a later successful scan. 188 bilingual strings passed the localization audit; core runtime checks passed in English and Simplified Chinese.
+- Native UI export/save/cancel passed. The final binary saved and exported both with Accessibility unavailable and after restoring the existing grant. ZIP inventories were checked directly: exactly `report.json` and `READ-ME.txt` within the diagnostic folder, with no AppleDouble resource forks or extended metadata. Hardware/OS, permission states, screen layout and operation history were readable, without raw home paths or the ordering bookmark.
+- One real Caffeine hide/show pair succeeded on the local M1. The export retained 14 hide and 3 show position-verification samples, operation phase and version. Configuration matched the original after the tests. This is a targeted instrumentation smoke test, not a repeated full motion regression.
+- The context-menu export action is wired, but Computer Use reported its menu-bar target offscreen, so that shortcut is not counted as UI-validated. The Permissions & Help entry was validated instead.
+- **A user reports hiding succeeds but showing times out on M4 Pro / macOS 27.2. That device failure has not been reproduced or fixed here; this build collects the evidence needed to investigate it.** There is no new certification for notched/multiple displays or other OS versions. Ad-hoc signing, no notarization and the existing private-interface limits remain.
+
+发布程序哈希见上；M1 / macOS 27.2、单屏无刘海。本轮通过 24 组核心检查、188 条双语审计、实际保存 / 取消导出、无辅助功能权限导出和已授权实时布局导出。直接检查 ZIP 文件清单，仅有报告与说明，排除用户目录、授权书签及资源叉元数据。一组 Caffeine 隐藏 / 显示成功并导出 14 / 3 个位置校验样本，原配置恢复一致。右键入口因自动化提示目标在屏外，未计入实机通过项；帮助页入口已验收。**M4 Pro 的显示超时仍需该设备的失败日志，不宣称已修复。** 旧版完整移动录像不沿用为本版验收。
+
 ### 0.1.14 drawer opening / 浮栏打开响应
 
 Executable SHA-256 in both installation archives: `3911f016a54aca099131c6f70b8873e5195162444ae35d7f11423b85e54fe1e7`. Tested on the same M1 / macOS 27.2 (26B123), one 1440×900 non-notched Retina display. The published candidate was installed in `/Applications`, granted the existing Accessibility access, and launched successfully.
@@ -156,9 +168,9 @@ In 0.1.10 development, two experimental pickup-coordinate approaches failed the 
 
 ## Known limits / 已知限制
 
-The current 0.1.14 targeted regression uses one M1, macOS 27.2, non-notched display. Older records above describe different binaries and display setups; they do not certify this candidate on multiple displays or notched MacBooks. Real login-after-reboot and energy measurements are not certified. A geometry sample is not a captured frame: it cannot prove that no transient pixel or ghost ever appeared. Never label an unrecorded motion test “flicker-free.”
+The current 0.1.15 targeted regression uses one M1, macOS 27.2, non-notched display. Older records above describe different binaries and display setups; they do not certify this candidate on multiple displays or notched MacBooks. Real login-after-reboot and energy measurements are not certified. A geometry sample is not a captured frame: it cannot prove that no transient pixel or ghost ever appeared. Never label an unrecorded motion test “flicker-free.”
 
-当前 0.1.14 定向回归环境为 M1、macOS 27.2、单屏无刘海。上文历史结果属于不同二进制及屏幕环境，不能沿用为当前候选的多屏、刘海验收；重启登录与能耗仍未验收。几何样本不能证明每帧都没有闪动；未录制的移动不能标注“绝不闪动”。
+当前 0.1.15 定向回归环境为 M1、macOS 27.2、单屏无刘海。上文历史结果属于不同二进制及屏幕环境，不能沿用为当前候选的多屏、刘海验收；重启登录与能耗仍未验收。几何样本不能证明每帧都没有闪动；未录制的移动不能标注“绝不闪动”。
 
 Spacing adoption without source app reopening remains unresolved. Context menus depend on source app behavior. Preview builds are not notarized, and rebuilding may invalidate existing macOS permission records.
 

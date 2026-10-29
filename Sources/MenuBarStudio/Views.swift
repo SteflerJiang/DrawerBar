@@ -420,6 +420,18 @@ struct PermissionsView: View {
                 Button(L("重新检查")) { model.checkPermissions(); Task { await model.refresh() } }
             }.padding(.vertical, 7)
             Divider().padding(.vertical, 8)
+            HStack {
+                Button { model.exportDiagnostics() } label: {
+                    Label(L("导出诊断信息…"), systemImage: "square.and.arrow.up")
+                }.disabled(model.exportingDiagnostics)
+                if model.exportingDiagnostics { ProgressView().controlSize(.small) }
+            }
+            Text(L("包含应用名称、图标位置及错误；不含截图、录屏或授权凭证，仅保存到本机。"))
+                .font(.system(size: 12)).foregroundStyle(secondaryText).fixedSize(horizontal: false, vertical: true)
+            if let notice = model.diagnosticExportNotice {
+                Text(notice).font(.system(size: 12)).textSelection(.enabled)
+            }
+            Divider().padding(.vertical, 8)
             Text(L("找不到图标？")).font(.system(size: 17, weight: .semibold))
             Text(L("点击暂停整理以展开图标。也可从应用启动器重新打开本工具。系统空间不足或刘海遮挡时，图标可能仍无法同时显示。"))
                 .foregroundStyle(secondaryText).fixedSize(horizontal: false, vertical: true)

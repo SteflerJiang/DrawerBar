@@ -86,6 +86,10 @@ final class NativeMenuBar27 {
     let layoutStore = NativeLayoutStore()
     weak var entrance: NSStatusItem?
     private(set) var transitionTrace: [[String: Any]] = []
+    private var moveOperationID = ""
+    private var movePhase = "idle"
+    private var moveFailurePhase: String?
+    private var verificationSamples: [[String: Any]] = []
     private(set) var entries: [String: MenuBarEntry] = [:]
     private(set) var wantsCollapsed = false
     private var backgroundApply: Task<Void, Never>?
@@ -232,16 +236,21 @@ final class NativeMenuBar27 {
     }
 
     func move(_ original: MenuBarEntry, to target: ItemPlacement, collapsed: Bool) async throws -> MenuBarEntry {
-        guard available else { throw ServiceError.unsupported }
         transitionStarted = Date()
+        transitionTrace = []; verificationSamples = []
+        moveOperationID = UUID().uuidString; movePhase = "checking-runtime"; moveFailurePhase = nil
+        var moveCompleted = false
+        defer { if !moveCompleted { moveFailurePhase = movePhase } }
+        guard available else { throw ServiceError.unsupported }
         backgroundApply?.cancel()
         let wasRestricted = bridge.allowedBundleIDs != nil
         let sharingState = hasWindowSharingSession
         var repinned = false
-        if target == .visible { try await ensureLeading() }
+        if target == .visible { movePhase = "pin-entrance-before-show"; try await ensureLeading() }
         else {
             // Hiding an overflowing icon can itself restore a leading entrance;
             // do not require an already valid layout before freeing that space.
+            movePhase = "pin-entrance-before-hide"
             let positions = try positionsWithEntrance()
             guard let entranceKey = entranceKey(in: positions),
                   let patch = NativeBarOrderPolicy.pinEntrance(positions: positions, entrance: entranceKey, activeOwners: activeOwners) else {
@@ -250,6 +259,7 @@ final class NativeMenuBar27 {
             repinned = !patch.isEmpty
             try layoutStore.apply(patch)
         }
+        movePhase = "snapshot-before-move"
         let beforeItems = drawnItems() ?? []
         rememberSystemSlots(beforeItems)
         transitionTrace = [stage("before", target: original)]
@@ -283,6 +293,7 @@ final class NativeMenuBar27 {
         let restoredSystemWidth = releasesRestriction ? max(missingSystemWidth, inferredSystemWidth) : 0
         let reservedWidth = itemWidth + restoredSystemWidth
         if target == .visible, wasHidden {
+            movePhase = "check-notch-space"
             let height = NSScreen.screens.first?.frame.maxY ?? 0
             for own in drawnItems()?.filter({ $0.pid == getpid() }) ?? [] {
                 guard let screen = NSScreen.screens.first(where: { abs(height - $0.frame.maxY - own.frame.minY) < 4 }),
@@ -293,6 +304,7 @@ final class NativeMenuBar27 {
         var updated = original; updated.placement = target
         do {
             if target == .visible {
+                movePhase = "map-insertion-slot"
                 let patch = try insertionPatch(original)
                 editedKeys = Set(patch.keys)
                 if wasHidden, let entrance {
@@ -303,8 +315,10 @@ final class NativeMenuBar27 {
                     let primary = entranceFrame().map {
                         CGRect(x: $0.minX, y: height - $0.maxY, width: $0.width, height: $0.height)
                     }
+                    movePhase = "create-entrance-proxy"
                     guard let transition = EntranceTransition(item: entrance, primaryFrame: primary, otherFrames: otherFrames) else { throw ServiceError.nativeLayoutUnconfirmed }
                     overlay = transition
+                    movePhase = "reserve-insertion-space"
                     _ = try await transition.reserve(width: reservedWidth)
                     transitionTrace.append(stage("space-reserved", target: original, visualEntrance: transition.frame))
                     transitionTrace[transitionTrace.count - 1]["itemWidth"] = itemWidth
@@ -317,11 +331,14 @@ final class NativeMenuBar27 {
                 // Preference notifications can repaint the native entrance.
                 // Cover it before updating the host, including the first reveal
                 // after startup, instead of installing the proxy afterwards.
+                movePhase = "write-insertion-order"
                 try layoutStore.apply(patch)
                 overlay?.handOffSpace()
             }
             entries[original.id] = updated; wantsCollapsed = collapsed
+            movePhase = "apply-visibility"
             try await synchronize()
+            movePhase = "verify-rendered-position"
             // A single host snapshot per sample avoids mixing animation frames
             // and repeating cross-process AX queries for each geometry field.
             let shouldBeVisible = target == .visible || !collapsed || systemUIExpanded
@@ -329,7 +346,11 @@ final class NativeMenuBar27 {
             var lastGeometry: [CGFloat]?
             for _ in 0..<24 {
                 try await Task.sleep(nanoseconds: 40_000_000)
-                guard let items = drawnItems(), let own = entranceFrame(in: items) else { stable = 0; continue }
+                guard let items = drawnItems(), let own = entranceFrame(in: items) else {
+                    stable = 0
+                    verificationSamples.append(["elapsedMs": Date().timeIntervalSince(transitionStarted) * 1000, "readable": false])
+                    continue
+                }
                 let sameRow = items.filter { abs($0.frame.midY - own.midY) < 4 }
                 let item = sameRow.filter { $0.pid == original.pid }.map(\.frame).min(by: { $0.minX < $1.minX })
                 let peers = sameRow.filter { $0.pid != original.pid && $0.pid != getpid() && $0.systemID == nil }.map(\.frame)
@@ -343,6 +364,11 @@ final class NativeMenuBar27 {
                 let visualAligned = overlay.map { abs($0.frame.minX - own.minX) <= 3 } ?? true
                 stable = visible == shouldBeVisible && ordered && !overlaps && visualAligned ? (still ? stable + 1 : 1) : 0
                 lastGeometry = geometry
+                verificationSamples.append(["elapsedMs": Date().timeIntervalSince(transitionStarted) * 1000,
+                    "readable": true, "visible": visible, "shouldBeVisible": shouldBeVisible,
+                    "ordered": ordered, "overlaps": overlaps, "visualAligned": visualAligned, "stable": stable,
+                    "entranceX": own.minX, "entranceY": own.minY, "entranceWidth": own.width,
+                    "targetX": item?.minX as Any? ?? NSNull(), "targetWidth": item?.width as Any? ?? NSNull()])
                 if stable >= 3 {
                     updated.placementVerified = true
                     if target == .shelf, !wasRestricted, !repinned, renderedWidth > 0,
@@ -362,6 +388,7 @@ final class NativeMenuBar27 {
                     entries[original.id] = updated
                     transitionTrace.append(stage("settled", target: updated, visualEntrance: overlay?.frame))
                     await overlay?.finish()
+                    movePhase = "settled"; moveCompleted = true
                     return updated
                 }
             }
@@ -566,6 +593,8 @@ final class NativeMenuBar27 {
     var snapshot: [String: Any] {
         ["backend": "MenuBarAgent", "available": available, "observed": drawnOwners() != nil,
          "layoutAccess": layoutStore.available,
+         "lastMove": ["operationID": moveOperationID, "phase": movePhase,
+                      "failurePhase": moveFailurePhase as Any? ?? NSNull(), "verificationSamples": verificationSamples],
          "unrestrictedSystemWidths": unrestrictedSystemWidths,
          "windowSharing": hasWindowSharingSession,
          "restrictionExtraWidth": restrictionExtraWidths[hasWindowSharingSession] as Any? ?? NSNull(),

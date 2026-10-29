@@ -2,7 +2,9 @@
 
 **简体中文** · [English](README.md)
 
-**[下载 DMG 安装包（推荐）](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.14/DrawerBar-0.1.14-AppleSilicon.dmg>)** · **[下载 ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.14/DrawerBar-0.1.14-arm64.zip>)** · [v0.1.14 预览版说明](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.14)
+**[下载 DMG 安装包（推荐）](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.15/DrawerBar-0.1.15-AppleSilicon.dmg>)** · **[下载 ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.15/DrawerBar-0.1.15-arm64.zip>)** · [v0.1.15 预览版说明](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.15)
+
+**诊断预览版**：v0.1.15 新增本机诊断导出。M4 Pro / macOS 27.2 上“能隐藏、显示失败”的问题仍在定位，本版不宣称已修复。复现失败后，到 **权限与帮助 → 导出诊断信息…** 保存 ZIP，检查后再发送。
 
 给 Mac 菜单栏加一个小抽屉。常用图标留在外面，偶尔用的收进单行浮栏。
 
@@ -12,7 +14,7 @@
 
 ## 下载
 
-当前可下载版本为 **v0.1.14 开发预览版**。直接点击页首的 **下载 DMG 安装包 / 下载 ZIP**，或进入[对应版本页](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.14)。如果 GitHub 底部的 Assets 区块一直显示 Loading，页首的直达链接仍可使用。GitHub 自动提供的“Source code”是源码压缩包，不是安装包；也可按下文[源码构建](#源码构建)。
+当前可下载版本为 **v0.1.15 开发预览版**。直接点击页首的 **下载 DMG 安装包 / 下载 ZIP**，或进入[对应版本页](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.15)。如果 GitHub 底部的 Assets 区块一直显示 Loading，页首的直达链接仍可使用。GitHub 自动提供的“Source code”是源码压缩包，不是安装包；也可按下文[源码构建](#源码构建)。
 
 预览版使用临时签名，**没有 Developer ID 签名，也没有经过 Apple 公证**。CI 构建通过不代表真实菜单栏交互已通过验收。目前无自动更新、App Store、Homebrew 或 Intel 版本。
 

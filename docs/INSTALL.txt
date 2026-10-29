@@ -25,6 +25,11 @@ It uses a private OS interface; dynamic Apple modules may temporarily disappear
 and return when the visibility restriction ends. See the release test notes.
 Notched Macs, multiple displays, and other macOS versions are not fully tested.
 No account, networking, telemetry, or automatic updater is implemented.
+In 0.1.15, reproduce a failed Show/Hide operation, wait for completion, then
+use Permissions & Help > Export Diagnostics to save a ZIP for review/sharing.
+It includes app identities, layout and errors, without screenshots or permission
+credentials. Nothing is uploaded automatically. M4 Pro Show failures are not yet fixed.
+
 Full guides and release-specific limitations: https://github.com/SteflerJiang/DrawerBar
 
 简体中文
@@ -53,4 +58,8 @@ macOS 27 请从 /Applications 运行，并按应用提示授权单个排序文�
 同一应用的图标一起切换，浮栏使用应用图标；依赖系统私有接口。
 部分 Apple 动态模块在限制期间可能暂时消失，解除限制后恢复，详见版本说明。
 没有账号、联网、遥测或自动更新。
+0.1.15：复现显示 / 隐藏失败，等转圈结束，在“权限与帮助 → 导出诊断信息…”保存 ZIP。
+报告含应用名称、布局及错误，不含截图或授权凭证，不自动上传。
+M4 Pro 上的显示失败问题仍在定位，本版尚未修复。
+
 完整说明及各版本限制：https://github.com/SteflerJiang/DrawerBar
