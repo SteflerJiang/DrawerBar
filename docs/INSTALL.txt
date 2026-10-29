@@ -7,6 +7,7 @@ Check the source and download checksum before deciding whether to trust it.
 Apple guidance: https://support.apple.com/102445
 
 Grant Accessibility in System Settings > Privacy & Security to organize icons.
+On macOS 27 the tested panel is named Device Control and Data Access.
 Screen Recording is optional for original menu bar artwork and matching colors.
 Each user authorizes their own Mac. A rebuilt ad-hoc app may need permission renewal.
 
@@ -17,7 +18,11 @@ Spacing saves immediately, but running apps on macOS 26 may require reopening.
 Only explicitly selected apps are reopened with consent; no forced quit or logout.
 
 The name follows the macOS app language: DrawerBar in English, 小屉 in Chinese.
-Version 0.1.12 passed the recorded motion regression on one M1 / macOS 26.6.2 Mac.
+Version 0.1.13 adds the macOS 27 backend. Device-test scope: one M1 / macOS 27.2 Mac.
+Run the installed copy in /Applications. Ordering needs the single-file grant
+requested by the app. macOS 27 groups icons by app and uses app artwork in the drawer.
+It uses a private OS interface; dynamic Apple modules may temporarily disappear
+and return when the visibility restriction ends. See the release test notes.
 Notched Macs, multiple displays, and other macOS versions are not fully tested.
 No account, networking, telemetry, or automatic updater is implemented.
 Full guides and release-specific limitations: https://github.com/SteflerJiang/DrawerBar
@@ -33,6 +38,7 @@ Full guides and release-specific limitations: https://github.com/SteflerJiang/Dr
 Apple 官方打开说明：https://support.apple.com/zh-cn/102445
 
 在“系统设置 → 隐私与安全性 → 辅助功能”授权。
+本次 macOS 27 实机的页面名为 Device Control and Data Access。
 屏幕录制是可选项，用于显示原菜单栏图像；未授权时使用应用图标。
 每位使用者需在自己的 Mac 上授权，临时签名重编译后旧授权可能失效。
 
@@ -42,6 +48,9 @@ Apple 官方打开说明：https://support.apple.com/zh-cn/102445
 仅在用户主动开启并明确勾选应用后重开；不强制退出、不注销。
 
 中文名“小屉”，英文名“DrawerBar”，跟随 macOS 应用语言设置。
-开发预览版；其他系统版本、刘海和多屏仍需进一步测试。
+0.1.13 的实机范围：M1、macOS 27.2、单屏无刘海；其他环境仍需测试。
+macOS 27 请从 /Applications 运行，并按应用提示授权单个排序文件。
+同一应用的图标一起切换，浮栏使用应用图标；依赖系统私有接口。
+部分 Apple 动态模块在限制期间可能暂时消失，解除限制后恢复，详见版本说明。
 没有账号、联网、遥测或自动更新。
 完整说明及各版本限制：https://github.com/SteflerJiang/DrawerBar

@@ -2,17 +2,17 @@
 
 [简体中文](README.zh-CN.md) · **English**
 
-**[Download DMG](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.12/DrawerBar-0.1.12-AppleSilicon.dmg>)** · **[Download ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.12/DrawerBar-0.1.12-arm64.zip>)** · [v0.1.12 preview notes](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.12)
+**[Download DMG](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.13/DrawerBar-0.1.13-AppleSilicon.dmg>)** · **[Download ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.13/DrawerBar-0.1.13-arm64.zip>)** · [v0.1.13 preview notes](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.13)
 
 A small drawer for your Mac's menu bar. Keep everyday icons visible and tuck less-used ones into a single-row drawer.
 
 Native SwiftUI + AppKit. Built for Apple Silicon. English and Simplified Chinese. No account, telemetry, cloud service, or third-party runtime dependencies.
 
-**Developer preview:** the source targets macOS 14+. Device testing has been on one M1 Mac running macOS 26.6.2, with one display and no notch. Other OS versions, notched displays, and multi-display behavior are not certified. See [testing and limitations](docs/TESTING.md).
+**Developer preview:** the source targets macOS 14+. The 0.1.13 device regression uses one M1 Mac running macOS 27.2, with one display and no notch. Earlier macOS 26 results belong to earlier binaries. Other OS versions, notched displays, and multi-display behavior are not certified for this release. See [testing and limitations](docs/TESTING.md).
 
 ## Download
 
-The current developer preview is **v0.1.12**. Use the **Download DMG / Download ZIP** links above, or visit its [release page](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.12). If GitHub’s Assets section stays on “Loading”, the direct links above bypass that section. GitHub’s automatic “Source code” archives contain source, not an installable app. You can also [build from source](#build-from-source).
+The current developer preview is **v0.1.13**. Use the **Download DMG / Download ZIP** links above, or visit its [release page](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.13). If GitHub’s Assets section stays on “Loading”, the direct links above bypass that section. GitHub’s automatic “Source code” archives contain source, not an installable app. You can also [build from source](#build-from-source).
 
 Previews use an ad-hoc signature. They are **not Developer ID signed or notarized by Apple**. Do not assume CI build success means native interaction tests passed. There is no automatic updater, App Store distribution, Homebrew cask, or Intel build.
 
@@ -22,7 +22,7 @@ Previews use an ad-hoc signature. They are **not Developer ID signed or notarize
 2. Open the DMG and drag **DrawerBar.app** to **Applications**. For a ZIP, extract it and move the app to Applications. Finder may display the localized name **小屉** in Chinese.
 3. Eject the disk image and open the copy in Applications. Keep one installed copy; quit an older copy before replacing it.
 4. If macOS blocks this unnotarized preview, review its source, origin, release notes, and checksum first. If you choose to trust it, use **System Settings → Privacy & Security → Open Anyway**, as described by [Apple](https://support.apple.com/102445). Managed Macs may prohibit this. Do not disable Gatekeeper or SIP.
-5. Grant **Accessibility** in **System Settings → Privacy & Security → Accessibility**. This is required to identify, move, and invoke other apps' menu bar icons.
+5. Grant **Accessibility** in **System Settings → Privacy & Security → Accessibility** (called **Device Control and Data Access** on the tested macOS 27 system). This is required to identify, move, and invoke other apps' menu bar icons.
 6. **Screen Recording** (called Screen & System Audio Recording on some releases) is optional. It supplies the original icon artwork; without it, app icons are used. Grant it only if you want that feature. macOS may ask you to quit and reopen the app.
 
 Each user must grant permissions on their own Mac. A different ad-hoc build may require refreshing an old permission record; an enabled toggle alone does not prove macOS trusts the current executable. See [troubleshooting](docs/TROUBLESHOOTING.md).
@@ -31,9 +31,9 @@ Each user must grant permissions on their own Mac. A different ad-hoc build may 
 
 ### macOS 27 adapter
 
-The local source adds a separate macOS 27 backend. It discovers source apps through Accessibility and holds a temporary MenuBarAgent visibility allow-list, instead of relying on individual WindowServer windows or an oversized divider. Run `/Applications/DrawerBar.app`. An ad-hoc rebuild may require removing the old Accessibility entry and adding the installed copy again. Screen Recording is not required for this hiding path.
+The source includes a separate macOS 27 backend. It discovers source apps through Accessibility and holds a temporary MenuBarAgent visibility allow-list, instead of relying on individual WindowServer windows or an oversized divider. Run `/Applications/DrawerBar.app`. An ad-hoc rebuild may require removing the old Accessibility entry and adding the installed copy again. Screen Recording is not required for this hiding path.
 
-The local ordering build asks you to select `~/Library/Group Containers/com.apple.MenuBar/Library/Preferences/com.apple.MenuBar.plist` using the ordering access button. The grant covers that file; a backup is kept in `~/Library/Application Support/MenuBarStudio/native-layout-original.plist`. The entrance stays leftmost; hiding an item right-packs the icons to its left, and showing an item first reserves space to insert it immediately right of the entrance. Ordering changes touch the entrance and target app only; other apps' relative order and system module settings are preserved. Three native hide/show cycles passed on the current two-display setup. Consult `docs/TESTING.md` for the tested binary and limits; this is an unpublished local build.
+On macOS 27, ordering asks you to select `~/Library/Group Containers/com.apple.MenuBar/Library/Preferences/com.apple.MenuBar.plist` using the ordering access button. The grant covers that file; the live ordering table is backed up in `~/Library/Application Support/MenuBarStudio/native-layout-original-table.plist`. The entrance stays leftmost; hiding an item right-packs the icons to its left, and showing an item first reserves space to insert it immediately right of the entrance. Ordering changes touch the entrance and target app only; other apps' relative order and system module settings are preserved. The adapter reads and updates the host’s live preferences, avoiding stale disk snapshots. Older entrance identities are migrated automatically. See [testing](docs/TESTING.md) for the release binary and its exact scope.
 
 Items are grouped by app; multiple icons from one app switch together. The drawer currently uses app artwork. Using the right-hand system area temporarily releases the restriction so Notification Center remains accessible. Some Apple dynamic modules may disappear while the restriction is active and return on release; their settings are not rewritten or unloaded. Normal quit and process exit release the temporary assertion; saved ordering persists. This uses a private system interface that may change in an OS update, with runtime availability checks.
 
@@ -43,22 +43,25 @@ Items are grouped by app; multiple icons from one app switch together. The drawe
 - **Drawer order:** drag hidden icons within the drawer group. The context menu also offers **Move Earlier / Move Later**. To reorder visible menu bar icons, use macOS **Command-drag**.
 - **Close:** press Esc, click outside, or move the pointer away and wait for the configured delay (default 1.5 seconds). The pin keeps the drawer open. Using an original app menu suspends automatic closing.
 - **Right-click DrawerBar:** open settings, pause or resume organization, show the welcome guide, or quit. Pause temporarily shows icons while preserving their categories. Normal quit releases the hidden boundary.
+- **Keyboard input:** global shortcuts use a registered Carbon hotkey and passive observers. Ordinary keyboard events are not intercepted or replayed.
 - **General:** choose **⌘⇧Space**, **⌘⇧B**, or Off. A shortcut conflict is reported. Enable launch at login if wanted. The interface follows system light/dark appearance.
 - **Reset Icon Arrangement:** confirmation is required because it clears categories and drawer order. Spacing, keyboard shortcut, and login preference remain unchanged. A local pre-reset backup is kept.
 
 ### Drawer appearance
 
+**On macOS 27, the drawer currently uses app artwork.** The original-artwork path described below applies to the earlier menu bar architecture.
+
 With Screen Recording access, the drawer matches the menu bar's background colors and displays original status icons at their native point sizes. Wide items, such as traffic meters and unread counts, retain their width. Icons have no separate card fill or border. Without capture access, system material and app artwork are used. An empty drawer is a compact row; click it once to open Organize Icons.
 
 ### Icon movement
 
-On macOS 26, Control Center-hosted icons use a single native event route. Showing an icon first makes room beside the drawer, then reveals the target in the first visible slot. Hiding an icon keeps the rest of the hidden region collapsed. The 0.1.12 device regression completed 34 first-attempt moves; inspected recorded transitions did not reproduce the reported overlap or flash. See [measurements and tested scope](docs/TESTING.md). Other macOS versions and hosts retain the compatibility path.
+On macOS 26, Control Center-hosted icons use a single native event route. Showing an icon first makes room beside the drawer, then reveals the target in the first visible slot. Hiding an icon keeps the rest of the hidden region collapsed. The historical 0.1.12 device regression completed 34 first-attempt moves; inspected recorded transitions did not reproduce the reported overlap or flash. The macOS 27 backend uses native visibility transactions and live ordering preferences, with space reserved before reveal. See [measurements and tested scope](docs/TESTING.md). Other macOS versions and hosts retain the compatibility path.
 
 ### Spacing
 
 Choose **System Default**, **Comfortable**, **Compact**, or **Minimal**. Selecting a preset saves immediately, with no Apply button or second confirmation. **Undo Last Change** and **Restore System Default** are available.
 
-**Saving is not the same as immediate visual application.** macOS 26 caches spacing in running apps. Their icons update after their owning apps reopen. You can explicitly select apps and opt into reopening those apps when a preset changes. Reopening can interrupt work or connections; no app is force-quit and no logout occurs. Fresh configurations do not preselect apps. System items may retain system-controlled spacing. “Minimal” does not guarantee zero gap. Instant updates without reopening apps are not implemented.
+**Saving is not the same as immediate visual application.** macOS 26 caches spacing in running apps. Their icons update after their owning apps reopen. You can explicitly select apps and opt into reopening those apps when a preset changes. Reopening can interrupt work or connections; no app is force-quit and no logout occurs. Fresh configurations do not preselect apps. System items may retain system-controlled spacing. “Minimal” does not guarantee zero gap. Instant updates without reopening apps are not implemented. The macOS 27 regression does not certify spacing adoption by the new system host.
 
 This changes the current user's current-host `NSStatusItemSpacing` and `NSStatusItemSelectionPadding` preferences. Previous values, including an unset value, are backed up. Undo detects intervening changes from other tools and refuses to overwrite them silently. Spacing persists when DrawerBar quits; restore it before uninstalling if desired.
 

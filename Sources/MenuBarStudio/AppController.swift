@@ -207,13 +207,12 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         let previous = accessibility
         accessibility = service.hasAccessibility; screenCapture = service.hasScreenCapture
         if !accessibility {
-            if previous { permissionRestorePending = true; closeShelf(); hotkey.removeTap() }
+            if previous { permissionRestorePending = true; closeShelf() }
             service.setCollapsed(false)
         } else if !previous && !isLaunching {
             permissionRestorePending = true
             Task { await refresh(captureArtwork: false, cause: "permission-restored") }
         }
-        if accessibility { hotkey.installTapIfNeeded() }
         if accessibility && !escapeMonitorInstalled {
             if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
                 Task { @MainActor in
@@ -321,13 +320,14 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
             let firstSlot = service.usesNative27 || !newVisible || ((service.arrangementSnapshot(result)["firstRightWindow"] as? Int) == Int(entry.windowID))
             guard entry.placement != target || !entry.placementVerified || !firstSlot else { continue }
             do {
-                result[index] = try await service.move(entry, to: target)
+                result[index] = try await service.move(entry, to: target,
+                    collapseAfter: service.usesNative27 ? !paused && accessibility : nil)
             } catch {
                 failed = true
                 message = L("未能恢复 %@ 的位置：%@", entry.name, error.localizedDescription)
             }
         }
-        if !failed { service.setCollapsed(wasCollapsed) }
+        if !failed { service.setCollapsed(service.usesNative27 ? !paused && accessibility : wasCollapsed) }
         return result
     }
 
@@ -534,7 +534,8 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
                 }
             } catch {
                 recordDiagnostic(right ? "rightClickFailed" : "leftClickFailed", entry: entry,
-                    extra: ["error": error.localizedDescription])
+                    extra: ["error": error.localizedDescription, "modifierFlags": modifiers.rawValue,
+                            "movable": entry.canMove])
                 message = error.localizedDescription
             }
             nativeActionUntil = Date().addingTimeInterval(0.5)
@@ -669,6 +670,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         result["dividerArtworkPresent"] = service.divider?.button?.image != nil
         result["spacingApplying"] = spacingApplying
         result["busy"] = busyID ?? ""
+        result["keyboardRouting"] = "registered-hotkey-and-passive-monitor"
         result["temporaryNativeItem"] = temporaryNativeEntry?.id
         result["onboardingTrialAccessed"] = onboardingTrialAccessed
         for (key, value) in extra { result[key] = value }
@@ -822,14 +824,12 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
 
 }
 
+// Register only the chosen shortcut. An intercepting session keyboard tap is
+// intentionally absent: ordinary typing must never pass through our callback.
 final class HotkeyManager {
     var onPress: ((String) -> Void)?
     private var reference: EventHotKeyRef?
     private var handler: EventHandlerRef?
-    private var keyTap: CFMachPort?
-    private var keyTapSource: CFRunLoopSource?
-    private var code: UInt32 = UInt32(kVK_Space)
-    private var enabled = false
     init() {
         var event = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         InstallEventHandler(GetEventDispatcherTarget(), { _, _, data in
@@ -841,46 +841,11 @@ final class HotkeyManager {
     }
     func register(code: UInt32, enabled: Bool) -> Bool {
         unregister(); guard enabled else { return true }
-        self.code = code
         let id = EventHotKeyID(signature: 0x4D425354, id: 1)
-        self.enabled = RegisterEventHotKey(code, UInt32(cmdKey | shiftKey), id, GetEventDispatcherTarget(), 0, &reference) == noErr
-        if self.enabled { installTapIfNeeded() }
-        return self.enabled
-    }
-    func installTapIfNeeded() {
-        guard enabled, keyTap == nil, AXIsProcessTrusted() else { return }
-        let mask = CGEventMask(1) << CGEventType.keyDown.rawValue
-        keyTap = CGEvent.tapCreate(tap: .cgAnnotatedSessionEventTap, place: .headInsertEventTap,
-                                  options: .defaultTap, eventsOfInterest: mask, callback: { _, type, event, data in
-            guard let data else { return Unmanaged.passUnretained(event) }
-            let owner = Unmanaged<HotkeyManager>.fromOpaque(data).takeUnretainedValue()
-            if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-                if let tap = owner.keyTap { CGEvent.tapEnable(tap: tap, enable: true) }
-                return Unmanaged.passUnretained(event)
-            }
-            let flags = event.flags.intersection([.maskCommand, .maskShift, .maskAlternate, .maskControl])
-            if owner.enabled, type == .keyDown, event.getIntegerValueField(.keyboardEventKeycode) == Int64(owner.code),
-               event.getIntegerValueField(.keyboardEventAutorepeat) == 0, flags == [.maskCommand, .maskShift] {
-                DispatchQueue.main.async { owner.onPress?("event-tap") }
-                return nil
-            }
-            return Unmanaged.passUnretained(event)
-        }, userInfo: Unmanaged.passUnretained(self).toOpaque())
-        if let keyTap {
-            keyTapSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, keyTap, 0)
-            if let keyTapSource { CFRunLoopAddSource(CFRunLoopGetMain(), keyTapSource, .commonModes) }
-            CGEvent.tapEnable(tap: keyTap, enable: true)
-        }
+        return RegisterEventHotKey(code, UInt32(cmdKey | shiftKey), id, GetEventDispatcherTarget(), 0, &reference) == noErr
     }
     func unregister() {
-        enabled = false
         if let reference { UnregisterEventHotKey(reference) }; reference = nil
-        removeTap()
-    }
-    func removeTap() {
-        if let keyTapSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), keyTapSource, .commonModes) }
-        if let keyTap { CFMachPortInvalidate(keyTap) }
-        keyTap = nil; keyTapSource = nil
     }
     deinit { unregister(); if let handler { RemoveEventHandler(handler) } }
 }

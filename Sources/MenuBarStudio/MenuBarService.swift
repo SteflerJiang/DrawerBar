@@ -113,6 +113,7 @@ final class MenuBarService {
     /// each app's public accessibility extras with window geometry, not its host PID.
     func resolveHostedSources() async {
         guard hasAccessibility else { sourceFrames = []; return }
+        await native27?.prepareDiscovery()
         let pids = NSWorkspace.shared.runningApplications.filter {
             !$0.isTerminated && !($0.bundleIdentifier?.hasPrefix("com.apple.") ?? true)
         }.map(\.processIdentifier)
@@ -885,7 +886,6 @@ final class MenuBarService {
     func click(_ entry: MenuBarEntry, right: Bool = false, modifiers: CGEventFlags = []) async throws {
         guard hasAccessibility else { throw ServiceError.permission }
         if let native27 {
-            guard modifiers.isEmpty else { throw ServiceError.unsupported }
             let before = menuWindowIDs()
             nativeMenuTracking?.stop()
             let tracking = NativeMenuTracking(pid: entry.pid)
@@ -893,7 +893,25 @@ final class MenuBarService {
             lastNativeMenuObserved = false
             lastNativeMenuItemCount = 0
             lastClickMechanism = ""
-            let delivery = try await native27.press(entry, right: right)
+            var pointerFallback = false
+            let delivery: AXError
+            if !modifiers.isEmpty {
+                // AX actions cannot carry modifiers. Send the requested native
+                // action once rather than silently dropping them or rejecting
+                // an otherwise movable application as a protected system item.
+                try await clickNative27Pointer(entry, right: right, modifiers: modifiers, backend: native27)
+                pointerFallback = true
+                delivery = .success
+            } else {
+                do { delivery = try await native27.press(entry, right: right) }
+                catch ServiceError.contextMenuUnavailable where right {
+                    // Only an explicitly undelivered context action can fall back.
+                    // Never replay an AX success or an ambiguous timeout.
+                    try await clickNative27Pointer(entry, right: true, modifiers: [], backend: native27)
+                    pointerFallback = true
+                    delivery = .success
+                }
+            }
             for _ in 0..<10 {
                 if tracking.observedOpen { break }
                 try? await Task.sleep(nanoseconds: 20_000_000)
@@ -903,7 +921,7 @@ final class MenuBarService {
             lastNativeMenuObserved = tracking.observedOpen || !activeNativeMenuIDs.isEmpty || nativePopupVisible(ownedBy: entry.pid)
             lastNativeMenuItemCount = tracking.itemCount
             if delivery == .cannotComplete && !lastNativeMenuObserved { throw ServiceError.notVisible }
-            lastClickMechanism = "accessibility-macOS27"
+            lastClickMechanism = pointerFallback ? "native-context-macOS27" : "accessibility-macOS27"
             if right && !lastNativeMenuObserved { throw ServiceError.contextMenuUnavailable }
             return
         }
@@ -973,6 +991,42 @@ final class MenuBarService {
         }
         logger.info("native menu observed: \(self.lastNativeMenuObserved, privacy: .public)")
         if right && !lastNativeMenuObserved { throw ServiceError.contextMenuUnavailable }
+    }
+
+    private func clickNative27Pointer(_ entry: MenuBarEntry, right: Bool, modifiers: CGEventFlags,
+                                      backend: NativeMenuBar27) async throws {
+        guard let frame = backend.drawnItems()?.first(where: { $0.pid == entry.pid })?.frame,
+              frame.width > 0, frame.height > 0 else { throw ServiceError.notVisible }
+        let point = CGPoint(x: frame.midX, y: frame.midY)
+        let controlClick = right && entry.bundleID == "net.domzilla.caffeine"
+        let source = CGEventSource(stateID: .hidSystemState)
+        source?.localEventsSuppressionInterval = 0
+        let passthrough: CGEventFilterMask = [.permitLocalMouseEvents, .permitLocalKeyboardEvents, .permitSystemDefinedEvents]
+        source?.setLocalEventsFilterDuringSuppressionState(passthrough, state: .eventSuppressionStateSuppressionInterval)
+        let useRight = right && !controlClick
+        let button: CGMouseButton = useRight ? .right : .left
+        let down = useRight ? CGEventType.rightMouseDown : .leftMouseDown
+        let up = useRight ? CGEventType.rightMouseUp : .leftMouseUp
+        guard let pressed = CGEvent(mouseEventSource: source, mouseType: down, mouseCursorPosition: point, mouseButton: button),
+              let released = CGEvent(mouseEventSource: source, mouseType: up, mouseCursorPosition: point, mouseButton: button),
+              backend.drawnItems()?.contains(where: { $0.pid == entry.pid && $0.frame == frame }) == true else {
+            throw ServiceError.notVisible
+        }
+        for event in [pressed, released] {
+            event.flags = controlClick ? modifiers.union(.maskControl) : modifiers
+            event.setIntegerValueField(.mouseEventClickState, value: 1)
+        }
+        let cursor = CGEvent(source: nil)?.location
+        let hiddenCursor = CGDisplayHideCursor(CGMainDisplayID()) == .success
+        defer {
+            if let cursor { CGWarpMouseCursorPosition(cursor) }
+            if hiddenCursor { CGDisplayShowCursor(CGMainDisplayID()) }
+        }
+        CGWarpMouseCursorPosition(point)
+        pressed.post(tap: .cghidEventTap)
+        // Always release this one mouse-down, including task cancellation.
+        try? await Task.sleep(nanoseconds: 20_000_000)
+        released.post(tap: .cghidEventTap)
     }
 
     private func nativeContextMenuItemCount(_ pid: pid_t) -> Int {

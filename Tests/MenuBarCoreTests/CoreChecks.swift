@@ -19,9 +19,49 @@ enum CoreChecks {
         expect(NativeVisibilityPolicy.allowedBundles(running: ["org.example.new"], hidden: [], ownBundle: "local.menubarstudio.app")
             .contains("org.example.new"), "new applications stay visible by default")
         print("PASS macOS 27 native allow-list and protected recovery entrance")
+        let nativeRow = [CGRect(x: 100, y: 0, width: 26, height: 24),
+                         CGRect(x: 126, y: 0, width: 82, height: 24),
+                         CGRect(x: 100, y: 900, width: 26, height: 24)]
+        expect(!NativeVisibilityPolicy.hasOverlappingItems(nativeRow),
+            "native rows permit adjacent wide items and separate displays")
+        expect(NativeVisibilityPolicy.hasOverlappingItems(nativeRow + [CGRect(x: 120, y: 0, width: 26, height: 24)]),
+            "a rendered native icon overlapping a neighbour is not accepted")
+        print("PASS native rendered-slot overlap checks")
         let ownKey = "status:local.menubarstudio.app::MenuBarStudio.Entrance"
+        let legacyOwnKey = "status:MenuBarStudio::MenuBarStudio.Entrance"
+        let entranceMigration = NativeBarOrderPolicy.entranceBootstrap(positions: [legacyOwnKey: 378],
+            preferredOwner: "local.menubarstudio.app", alternateOwners: ["MenuBarStudio"], fallbackPosition: 1472)
+        expect(entranceMigration == [ownKey: 1472], "upgrade creates the canonical host identity without rewriting the old alias")
+        expect(NativeBarOrderPolicy.entranceKey(positions: [legacyOwnKey: 378].merging(entranceMigration, uniquingKeysWith: { _, new in new }),
+            preferredOwner: "local.menubarstudio.app", alternateOwners: ["MenuBarStudio"]) == ownKey,
+            "fresh canonical identity takes precedence without a user's manual drag")
+        expect(NativeBarOrderPolicy.entranceBootstrap(positions: [ownKey: 475], preferredOwner: "local.menubarstudio.app",
+            alternateOwners: ["MenuBarStudio"], fallbackPosition: 1472).isEmpty, "existing native positions are not reset at every launch")
+        expect(NativeBarOrderPolicy.entranceKey(positions: [legacyOwnKey: 378],
+            preferredOwner: "local.menubarstudio.app", alternateOwners: ["MenuBarStudio", "小屉"]) == legacyOwnKey,
+            "an upgraded executable-name entrance remains addressable")
+        expect(NativeBarOrderPolicy.entranceKey(positions: [ownKey: 475, legacyOwnKey: 378],
+            preferredOwner: "local.menubarstudio.app", alternateOwners: ["MenuBarStudio"]) == ownKey,
+            "the exact bundle owner takes priority over a legacy alias")
+        expect(NativeBarOrderPolicy.entranceKey(positions: ["status:org.unrelated::MenuBarStudio.Entrance": 475],
+            preferredOwner: "local.menubarstudio.app", alternateOwners: ["MenuBarStudio"]) == nil,
+            "another app's matching item name is never rewritten")
+        expect(NativeBarOrderPolicy.entranceKey(positions: [legacyOwnKey: 378, "status:小屉::MenuBarStudio.Entrance": 400],
+            preferredOwner: "local.menubarstudio.app", alternateOwners: ["MenuBarStudio", "小屉"]) == nil,
+            "ambiguous legacy owners fail closed instead of changing an arbitrary entry")
         let aKey = "status:org.example.a::Item-0"
         let bKey = "status:org.example.b::Item-0"
+        let legacyItem = "status:Probe::DrawerBar.NativeSmokeProbe"
+        let canonicalItem = "status:local.drawerbar.probe::DrawerBar.NativeSmokeProbe"
+        let itemMigration = NativeBarOrderPolicy.itemBootstrap(positions: [legacyItem: 500.5, bKey: 228],
+            preferredOwner: "local.drawerbar.probe", alternateOwners: ["Probe"])
+        expect(itemMigration == [canonicalItem: 500.5], "imported source aliases create only their canonical native item key")
+        expect(NativeBarOrderPolicy.itemBootstrap(positions: [legacyItem: 500.5, canonicalItem: 600],
+            preferredOwner: "local.drawerbar.probe", alternateOwners: ["Probe"]).isEmpty,
+            "existing source ordering takes precedence over an old alias")
+        expect(NativeBarOrderPolicy.itemBootstrap(positions: [legacyItem: 500.5, "status:OldProbe::DrawerBar.NativeSmokeProbe": 600],
+            preferredOwner: "local.drawerbar.probe", alternateOwners: ["Probe", "OldProbe"]).isEmpty,
+            "conflicting source identities fail closed instead of arbitrarily picking a position")
         let positionTable = [ownKey: 475.0, aKey: 342.0, bKey: 228.0,
             "status:org.stopped::Item-0": 99999.0, "module:AudioVideoModule": 9000.0, "module:WiFi": 206.0]
         let liveOwners: Set<String> = ["local.menubarstudio.app", "org.example.a", "org.example.b"]
@@ -51,6 +91,19 @@ enum CoreChecks {
             target: CGRect(x: 250, y: 0, width: 24, height: 24), peers: [adjacent]), "a visible peer before the target fails verification")
         expect(!NativeBarOrderPolicy.isLeading(entrance: arrowBox,
             peers: [CGRect(x: 60, y: 0, width: 24, height: 24)]), "a peer left of the entrance fails verification")
+        let liveTable = [ownKey: 428.5, legacyOwnKey: 518.5,
+                         "status:net.domzilla.caffeine::Item-0": 454.5,
+                         "module:AudioVideoModule": 480.5, bKey: 282.5]
+        let liveInsertion = NativeBarOrderPolicy.insertAfterEntrance(positions: liveTable, entrance: ownKey,
+            targets: [bKey], activeOwners: ["local.menubarstudio.app", "net.domzilla.caffeine", "org.example.b"],
+            visibleOwners: ["net.domzilla.caffeine"])!
+        expect(liveInsertion[ownKey] == 486.5 && liveInsertion[bKey] == 483.5,
+            "live canonical identity and newly persisted peers place the target before the privacy slot")
+        expect(liveInsertion[legacyOwnKey] == nil && liveInsertion["module:AudioVideoModule"] == nil,
+            "stale self aliases and protected indicators are never rewritten")
+        expect(!NativeBarOrderPolicy.isImmediateRight(entrance: arrowBox,
+            target: CGRect(x: 174, y: 0, width: 26, height: 24), peers: []),
+            "a system-sized gap is not falsely accepted as adjacent insertion")
         print("PASS macOS 27 entrance pinning, adjacent insertion, wide items and peer preservation")
         expect(L10n.text("小屉", language: "en") == "DrawerBar", "English brand comes from packaged resources")
         expect(L10n.text("小屉", language: "zh-Hans") == "小屉", "Chinese brand remains unchanged")

@@ -1,5 +1,14 @@
 # Changelog / 更新记录
 
+## 0.1.13 — macOS 27 compatibility / macOS 27 兼容修复
+
+- Use the macOS 27 host’s live ordering preferences instead of competing cache and disk writes. Create the current entrance identity when importing legacy records. Preserve unrelated app and system values. / macOS 27 改用宿主实时排序偏好，避免缓存与磁盘互相覆盖；自动补齐旧配置的当前入口身份，保留无关应用与系统值。
+- Keep the entrance leftmost, reserve the incoming slot before reveal, and verify actual adjacent geometry across stable samples. Track rendered app width separately from returning OS modules. / 入口保持靠左，显示前预留空位，再通过稳定的真实几何样本确认紧邻；分别记录应用宽度与系统模块恢复宽度。
+- Present the entrance proxy before hiding the original artwork and restore the original before retiring the proxy. / 先呈现入口代理再隐藏原图，交接结束先恢复原图再关闭代理，修复观察到的单帧空缺。
+- Remove active keyboard interception. Keep registered Carbon hotkeys and passive observation; user typing no longer duplicates in the confirmed device check. / 移除键盘主动拦截，保留 Carbon 快捷键与被动观察；实机确认普通输入不再重复。
+- Migrate imported target identities and admit newly running apps before discovery without releasing existing hidden apps. Context actions without AXShowMenu, including Caffeine Control-click, use one verified native pointer invocation. / 自动迁移目标身份，新应用在发现前加入显示白名单，保留其他隐藏项目；没有 AXShowMenu 的应用通过一次原生鼠标调用打开菜单。
+- Shipped binary: dedicated native smoke checks, 22 first-attempt manual placement transactions, a 2,513-frame menu-bar-only sample, native Caffeine context menu/recovery, ordinary input, and cold-start restoration passed on one M1 / macOS 27.2 / single non-notched display. Both release archives contain that exact executable. This remains an ad-hoc signed, unnotarized preview using a private system interface. See [evidence and limits](docs/TESTING.md). / 同一二进制通过专用自检、22 次一次成功的切换、2,513 帧菜单栏样本、原菜单与自动收回、普通输入及冷启动恢复；双安装包均含这一程序。仍为系统私有接口、临时签名且未公证的开发预览版，覆盖限制见测试文档。
+
 ## 0.1.12 — Native motion transactions / 原生图标移动修复
 
 - On macOS 26 Control Center-hosted icons, deliver each native drag through WindowServer once. Keep legacy routing for other hosts and macOS versions. / macOS 26 的控制中心托管图标使用单一路由，避免重复投递；其他宿主与系统保留兼容路径。

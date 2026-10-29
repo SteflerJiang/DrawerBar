@@ -35,7 +35,24 @@ Test on an unlocked desktop, save original configuration, use a disposable helpe
 
 ## Current native regression / 当前实机回归
 
-### Local macOS 27.2 menu regression / 本地 macOS 27.2 菜单回归
+### 0.1.13 shipped regression / 发布版回归
+
+Executable SHA-256: `cdbd8310799268fb45059df358f032536688b0fdfafd20b423b227e2507ccd83`. Tested on M1 / macOS 27.2 (26B123), arm64, one 1440×900 non-notched Retina display, with Accessibility and single-file ordering access. Screen Recording was not granted to the application. The same executable is packaged in both release archives.
+
+- All 22 CoreChecks groups passed in English and Simplified Chinese; 181 bilingual strings passed the audit.
+- The dedicated native smoke flow passed: newly launched source discovery, three verified hide/show rounds, real drawer opening, original menu opening and automatic target rehide, pause/assertion release, normal probe termination and byte-for-byte configuration restoration.
+- 22 additional manual placement transactions all succeeded on the first attempt. Cases included all-six hidden, six full single-row drawer buttons, pin/Esc, wide SSRUN slots, individual restore, and the final hidden item becoming visible with system-slot reservation. Confirming geometry checked a leading entrance, adjacent target within 3 points, target still hidden during reservation, and zero cursor displacement. No movement was replayed.
+- Twelve of those moves were captured in a local 45-second, menu-bar-only recording: 2,513 delivered frames, no audio. Entrance-template inspection found no missing or duplicate entrance glyph; minimum match score 0.960. This is an observed sample, not proof against every possible transient. Hide completion: 1,011–1,033 ms (median 1,021); show: 708–789 ms (median 734), while recording. Raw video and derived imagery were deleted after analysis.
+- The final binary opened Caffeine’s real context menu through one verified native Control-click, observed nine menu items, then restored the hidden target after closing. A disposable text field received exactly `456` from three single-key inputs. Earlier physical-user checks independently confirmed normal typing and Command-Shift-Space opening through Carbon; that keyboard path is unchanged in this binary.
+- Normal quit, exact original-configuration restoration and cold start passed: the controller was idle, the entrance led the app group, and ChatGPT’s saved hidden category was actually restored.
+
+Earlier candidates were rejected when manual review found one-frame entrance gaps, including low scores that the old automatic threshold incorrectly matched to other artwork. The final build forces proxy drawing, checks actual window visibility and retains the original artwork through the first compositing interval. Older binary results are not counted as this release’s recorded transactions.
+
+On the validated macOS 27 host, an own-window sharing session can restore a 48-point system privacy capsule when the last restriction ends. Live/inferred system widths take precedence; an unsampled active own-window sharing session uses this measured footprint. Actual adjacent geometry must still match or the transaction rolls back. Different privacy-module layouts remain unverified; this is not a universal sizing guarantee. The OS-owned module animation is outside DrawerBar’s control.
+
+发布二进制哈希见上；M1 / macOS 27.2、单屏无刘海，辅助功能与单个排序文件已授权，应用本身未授权录屏。22 组双语核心检查、181 条语言审计和专用助手完整自检通过。同一程序另完成 22 次一次成功的分类切换，覆盖六项全藏、单行完整显示、固定与 Esc、宽图标、逐项恢复及最后一项显示。12 次切换录制了 2,513 个顶部菜单栏帧，入口模板最低匹配 0.960，未检测到缺失或重复；不代表所有未来瞬态均已排除。录像与拆帧图分析后删除，不上传。原右键菜单、三次单键输入、正常退出、原配置逐字节恢复和冷启动实际恢复隐藏分类通过。此前失败候选不计入本版验收结果。刘海、多屏、其他系统、系统动态模块的所有变体、真实重启登录和能耗仍未全面验收；macOS 27 浮栏仍按应用使用应用图标，免重开的即时间距未完成。
+
+### Earlier macOS 27.2 probe regression / 较早的 macOS 27.2 助手回归
 
 The installed local executable SHA-256 is `f5ecd106c0355fe8927452b25edf1c637bc984ff93f82e0a49113886667a23b0`. It is an unpublished arm64 build based on `30229a0`, tested on macOS 27.2 (26B123) with Accessibility and single-file ordering access, without Screen Recording. Its dedicated probe passed three hide/show cycles, real drawer opening, temporary reveal of its original two-item menu, observed AX menu opening/closing with automatic rehide, and pause/assertion release. Original configuration was restored byte for byte and the probe terminated normally. The parent workspace contains `outputs/order-rules/native-menu-smoke-confirmed-action.json` and `native-menu-action-evidence.json`.
 
@@ -126,9 +143,9 @@ In 0.1.10 development, two experimental pickup-coordinate approaches failed the 
 
 ## Known limits / 已知限制
 
-Only a single M1, macOS 26.6.2, non-notched desktop has been available. Multi-display, notched MacBooks, other macOS versions, real login-after-reboot, and energy measurements are not certified. A geometry sample is not a captured frame: it cannot prove that no transient pixel or ghost ever appeared. Never label an unrecorded motion test “flicker-free.”
+The current 0.1.13 regression uses one M1, macOS 27.2, non-notched display. Older records above describe different binaries and display setups; they do not certify this candidate on multiple displays or notched MacBooks. Real login-after-reboot and energy measurements are not certified. A geometry sample is not a captured frame: it cannot prove that no transient pixel or ghost ever appeared. Never label an unrecorded motion test “flicker-free.”
 
-当前实体环境仅为一台 M1、macOS 26.6.2、单屏无刘海；未完成多屏、刘海、其他系统、重启登录与能耗验收。几何样本不能证明每帧都没有闪动；未录制的移动不能标注“绝不闪动”。
+当前 0.1.13 回归环境为 M1、macOS 27.2、单屏无刘海。上文历史结果属于不同二进制及屏幕环境，不能沿用为当前候选的多屏、刘海验收；重启登录与能耗仍未验收。几何样本不能证明每帧都没有闪动；未录制的移动不能标注“绝不闪动”。
 
 Spacing adoption without source app reopening remains unresolved. Context menus depend on source app behavior. Preview builds are not notarized, and rebuilding may invalidate existing macOS permission records.
 

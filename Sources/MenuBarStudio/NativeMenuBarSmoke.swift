@@ -70,7 +70,16 @@ extension AppController {
                 options.arguments = ["--native-probe"]; options.activates = false
                 probe = try await NSWorkspace.shared.openApplication(at: probeURL, configuration: options)
                 try await Task.sleep(nanoseconds: 700_000_000)
-                await refresh(captureArtwork: false, cause: "native-smoke-start")
+                // The workspace-launch refresh may already be in flight.
+                // refresh() intentionally skips overlapping requests; wait for
+                // actual discovery instead of treating that skip as a failure.
+                for _ in 0..<50 {
+                    if !refreshing && busyID == nil {
+                        await refresh(captureArtwork: false, cause: "native-smoke-start")
+                        if entries.contains(where: { $0.bundleID == "local.drawerbar.probe" }) { break }
+                    }
+                    try await Task.sleep(nanoseconds: 40_000_000)
+                }
                 guard let helper = entries.first(where: { $0.bundleID == "local.drawerbar.probe" }) else {
                     throw NSError(domain: "DrawerBarSmoke", code: 1, userInfo: [NSLocalizedDescriptionKey: "Probe not discovered via AXExtrasMenuBar"])
                 }
