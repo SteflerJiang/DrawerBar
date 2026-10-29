@@ -336,7 +336,7 @@ final class NativeMenuBar27 {
                 let ordered = shouldBeVisible
                     ? item.map { NativeBarOrderPolicy.isImmediateRight(entrance: own, target: $0, peers: peers) } ?? false
                     : NativeBarOrderPolicy.isLeading(entrance: own, peers: peers)
-                let geometry = [own.minX, own.width, item?.minX ?? 0, item?.width ?? 0]
+                let geometry: [CGFloat] = [own.minX, own.width, item?.minX ?? 0, item?.width ?? 0]
                 let still = lastGeometry.map { zip($0, geometry).allSatisfy { abs($0 - $1) < 0.5 } } ?? false
                 let visible = items.contains { $0.pid == original.pid }
                 let overlaps = NativeVisibilityPolicy.hasOverlappingItems(items.map(\.frame))
