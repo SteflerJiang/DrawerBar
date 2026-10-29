@@ -1,5 +1,12 @@
 # Changelog / 更新记录
 
+## 0.1.14 — Faster drawer opening / 浮栏快速打开
+
+- Present the shared icon snapshot before scanning, sorting verification or artwork capture. Refresh optional artwork asynchronously; defer stale-snapshot scans until the drawer is closed and idle. / 先显示现有图标，再异步更新图像；过期扫描推迟到浮栏关闭且空闲后，移除点击路径中的扫描与排序等待。
+- Cancel stale artwork updates on close/reopen, suppress implicit panel animation, and retain normal click-to-close and Esc behavior. / 关闭与重开时取消过期图像任务，禁用面板隐式动画，保留再次点击和 Esc 关闭。
+- Targeted local validation on one M1 / macOS 27.2: 15 opens, window-visible signal 70–89 ms (median 76 ms), empty/one/two-icon drawers, 20 alternating menu-bar clicks, pin/Esc and original configuration restoration. This measures controller-entry to AppKit visibility, not physical input-to-photon latency. See [test scope](docs/TESTING.md). / 单台 M1 / macOS 27.2 实测 15 次打开，可见信号 70–89ms（中位 76ms），空状态、单图标、双图标、20 次连续点击、固定与 Esc、原配置恢复通过；属于控制器入口至 AppKit 可见信号的耗时，不是硬件按下至像素显示延迟。
+- Existing preview limits remain: ad-hoc signature, no Apple notarization, private macOS 27 interface, and no newly certified multi-display/notched-Mac coverage. / 保留临时签名、未公证、macOS 27 私有接口等限制，本次未扩展多屏或刘海设备验收。
+
 ## 0.1.13 — macOS 27 compatibility / macOS 27 兼容修复
 
 - Use the macOS 27 host’s live ordering preferences instead of competing cache and disk writes. Create the current entrance identity when importing legacy records. Preserve unrelated app and system values. / macOS 27 改用宿主实时排序偏好，避免缓存与磁盘互相覆盖；自动补齐旧配置的当前入口身份，保留无关应用与系统值。

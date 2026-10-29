@@ -67,6 +67,11 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
     private var presentingShelf = false
     private var lastShortcut = Date.distantPast
     private var shelfScreenNumber: NSNumber?
+    private var shelfGeneration = 0
+    private var shelfArtworkTask: Task<Void, Never>?
+    private var lastSnapshotRefresh = Date.distantPast
+    private var deferredShelfRefresh = false
+    private var shelfClosedAt = Date.distantPast
 
     override init() {
         var saved = store.load()
@@ -140,6 +145,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         service.cancelPendingMove()
         service.setCollapsed(false)
         shelfPanel?.close()
+        shelfArtworkTask?.cancel()
         for monitor in monitors { NSEvent.removeMonitor(monitor) }
         hotkey.unregister(); timer?.invalidate(); persist()
     }
@@ -270,6 +276,8 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         }
         // Publish one snapshot: the settings and shelf always read the same list.
         entries = snapshot
+        lastSnapshotRefresh = Date()
+        deferredShelfRefresh = false
         if accessibility {
             config.placements = config.placements.filter { !$0.key.hasPrefix("com.apple.controlcenter#") }
             for entry in entries where entry.canMove && entry.placementVerified {
@@ -447,31 +455,29 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         }
     }
 
-    func toggleShelf() { Task { await toggleShelfSynchronizing() } }
+    func toggleShelf() {
+        let requestedAt = Date()
+        Task { await toggleShelfWithCachedSnapshot(requestedAt: requestedAt) }
+    }
 
-    private func toggleShelfSynchronizing(preferPointer: Bool = false) async {
-        guard busyID == nil, !spacingApplying, !refreshing, !presentingShelf else { return }
+    private func toggleShelfWithCachedSnapshot(preferPointer: Bool = false, requestedAt: Date = Date()) async {
         if shelfPresented { closeShelf(); return }
+        guard busyID == nil, !spacingApplying, !presentingShelf else { return }
         if temporaryNativeEntry != nil {
             guard !service.nativeMenuOpen() else { return }
             await restoreTemporaryNativeEntry()
         }
         presentingShelf = true; defer { presentingShelf = false }
-        await refresh(captureArtwork: false, cause: "shelf-open")
+        // Classification is already shared by settings and the shelf. Never
+        // put a cross-process scan, sorting repair or screenshot before opening.
+        deferredShelfRefresh = deferredShelfRefresh || Date().timeIntervalSince(lastSnapshotRefresh) > 5
         pinned = false; outsideSince = nil
         let preferred = preferPointer ? NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) }) : nil
         shelfScreenNumber = preferred?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
-        if let appearance = await service.captureMenuBarAppearance(screen: currentShelfScreen, anchor: shelfAnchor) {
-            shelfAppearance = appearance
-        }
-        let hidden = entries.filter { $0.canMove && $0.placement == .shelf }
-        let images = await service.capture(hidden, force: true)
-        for index in entries.indices {
-            if let image = images[entries[index].windowID] { entries[index].trayImage = image }
-        }
         if shelfPanel == nil {
             let panel = ShelfPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
             panel.title = L("小屉浮栏")
+            panel.animationBehavior = .none
             panel.level = .statusBar; panel.backgroundColor = .clear; panel.isOpaque = false
             panel.hasShadow = true; panel.isFloatingPanel = true
             panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
@@ -480,7 +486,39 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         }
         sizeShelf()
         shelfPanel?.makeKeyAndOrderFront(nil); shelfPresented = true
-        if !paused && accessibility { service.setCollapsed(true) }
+        shelfGeneration += 1
+        let generation = shelfGeneration
+        let orderedMilliseconds = Date().timeIntervalSince(requestedAt) * 1000
+        let screen = currentShelfScreen, anchor = shelfAnchor
+        let hidden = entries.filter { $0.canMove && $0.placement == .shelf }
+        shelfArtworkTask?.cancel()
+        shelfArtworkTask = Task { [weak self] in
+            // Let AppKit present the cached panel before doing even optional
+            // artwork work. A closed/reopened panel owns a different generation.
+            await Task.yield()
+            guard let self else { return }
+            for _ in 0..<20 {
+                guard !Task.isCancelled, self.shelfPresented, self.shelfGeneration == generation else { return }
+                if self.shelfPanel?.occlusionState.contains(.visible) == true { break }
+                try? await Task.sleep(nanoseconds: 5_000_000)
+            }
+            self.recordDiagnostic("shelfOpen", extra: ["cachedSnapshot": true,
+                "orderFrontMilliseconds": orderedMilliseconds,
+                "visibleMilliseconds": Date().timeIntervalSince(requestedAt) * 1000,
+                "panelPixelsVisible": self.shelfPanel?.occlusionState.contains(.visible) ?? false])
+            guard !Task.isCancelled, self.shelfPresented, self.shelfGeneration == generation else { return }
+            if let appearance = await self.service.captureMenuBarAppearance(screen: screen, anchor: anchor) {
+                guard !Task.isCancelled, self.shelfPresented, self.shelfGeneration == generation else { return }
+                self.shelfAppearance = appearance
+            }
+            let images = await self.service.capture(hidden, force: true)
+            guard !Task.isCancelled, self.shelfPresented, self.shelfGeneration == generation else { return }
+            let capturedIDs = Set(hidden.map(\.id))
+            for index in self.entries.indices where capturedIDs.contains(self.entries[index].id) {
+                if let image = images[self.entries[index].windowID] { self.entries[index].trayImage = image }
+            }
+            if !images.isEmpty { self.sizeShelf() }
+        }
     }
 
     private var currentShelfScreen: NSScreen {
@@ -506,7 +544,11 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         let y = max(screen.visibleFrame.minY + 10, min(anchor.minY - layout.height - 7, screen.visibleFrame.maxY - layout.height))
         shelfPanel?.setFrame(NSRect(x: x, y: y, width: layout.width, height: layout.height), display: true)
     }
-    func closeShelf() { shelfPanel?.orderOut(nil); shelfPresented = false; pinned = false; outsideSince = nil; shelfScreenNumber = nil }
+    func closeShelf() {
+        shelfGeneration += 1; shelfArtworkTask?.cancel(); shelfArtworkTask = nil
+        shelfPanel?.orderOut(nil); shelfPresented = false; pinned = false; outsideSince = nil; shelfScreenNumber = nil
+        shelfClosedAt = Date()
+    }
 
     func activate(_ entry: MenuBarEntry, right: Bool = false, modifiers: NSEvent.ModifierFlags = []) {
         guard busyID == nil, !spacingApplying, temporaryNativeEntry == nil else { return }
@@ -570,6 +612,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
                 guard let self, self.busyID == nil, !self.spacingApplying, !self.refreshing else { return }
                 try? await Task.sleep(nanoseconds: 150_000_000)
                 guard !self.presentingShelf else { return }
+                if self.shelfPresented { self.deferredShelfRefresh = true; return }
                 await self.refresh(captureArtwork: false, cause: "manual-drag")
             }
         }) { monitors.append(monitor) }
@@ -593,9 +636,20 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         if Date().timeIntervalSince(lastPermissionCheck) > 2 { lastPermissionCheck = Date(); checkPermissions() }
         guard busyID == nil, !spacingApplying, !refreshing, !presentingShelf else { return }
         if temporaryNativeEntry == nil { service.updateNativeSystemAccess() }
+        if deferredShelfRefresh, !shelfPresented, temporaryNativeEntry == nil, nativeActionUntil == nil,
+           Date().timeIntervalSince(shelfClosedAt) > 0.75, NSEvent.pressedMouseButtons == 0 {
+            deferredShelfRefresh = false
+            Task {
+                guard !self.shelfPresented, self.busyID == nil, !self.refreshing, self.temporaryNativeEntry == nil else {
+                    self.deferredShelfRefresh = true; return
+                }
+                await self.refresh(captureArtwork: false, cause: "shelf-idle")
+            }
+            return
+        }
         // Observe only stable, idle topology. Our own moves/native menu reveals
         // and a user's in-progress drag must never become a persisted category.
-        if NSEvent.pressedMouseButtons == 0,
+        if !shelfPresented, NSEvent.pressedMouseButtons == 0,
            Date().timeIntervalSince(lastLayoutCheck) > 2,
            nativeActionUntil == nil,
            !service.nativeMenuOpen() {
@@ -646,7 +700,7 @@ final class AppController: NSObject, ObservableObject, NSApplicationDelegate, NS
         lastShortcut = Date()
         let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? ""
         Task {
-            await toggleShelfSynchronizing(preferPointer: true)
+            await toggleShelfWithCachedSnapshot(preferPointer: true)
             try? await Task.sleep(nanoseconds: 60_000_000)
             recordDiagnostic("shortcut", extra: ["shortcutSource": source, "frontmostBundle": frontmost,
                                                   "panelVisible": shelfPanel?.isVisible ?? false,

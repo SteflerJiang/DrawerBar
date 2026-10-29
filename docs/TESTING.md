@@ -35,6 +35,19 @@ Test on an unlocked desktop, save original configuration, use a disposable helpe
 
 ## Current native regression / 当前实机回归
 
+### 0.1.14 drawer opening / 浮栏打开响应
+
+Executable SHA-256 in both installation archives: `3911f016a54aca099131c6f70b8873e5195162444ae35d7f11423b85e54fe1e7`. Tested on the same M1 / macOS 27.2 (26B123), one 1440×900 non-notched Retina display. The published candidate was installed in `/Applications`, granted the existing Accessibility access, and launched successfully.
+
+The fix presents the shared icon snapshot before discovery, ordering verification or screenshot work. Optional artwork updates run afterward and cannot write into a closed/reopened drawer generation. A stale scan is deferred until the drawer is closed and idle.
+
+- The local fix before the version-metadata bump completed 15 opens: AppKit window-visible signal 70.3–88.3 ms, median 76.5 ms. Empty, one-icon and two-icon drawers showed their contents; 20 alternating real menu-bar clicks, pin/Esc and configuration restoration passed. Screenshots confirmed complete single-row content.
+- After setting the release version and signing the final package, the exact executable above completed another six alternating real menu-bar clicks: three opens and three closes, correct state after each click. Window-visible signals were 82.8, 59.4 and 40.3 ms. No source-code changes followed those checks.
+- Timing starts at the controller's toggle request and ends at `NSWindow.occlusionState` visibility, not physical input-to-photon latency. It is not a high-speed camera or frame-by-frame animation measurement. This targeted regression does not repeat or inherit the earlier 0.1.13 motion recording, native-menu, typing or cold-start certification.
+- Release build, core checks, 181-string localization audit, arm64 architecture, strict signature integrity, archive contents and executable consistency are checked separately.
+
+双安装包程序哈希见上。M1 / macOS 27.2、单屏无刘海实机安装运行；本地修复先完成 15 次打开（70.3–88.3ms，中位 76.5ms）、空 / 单 / 双图标内容截图、20 次交替点击、固定 / Esc 和原配置恢复。更新版本元数据并签名后，最终安装包程序再完成 6 次交替点击，3 次打开与 3 次关闭均正确，可见信号为 82.8、59.4、40.3ms；之后未修改源码。计时为控制器入口至窗口可见信号，不代表硬件输入到像素延迟，也不是逐帧动画验收。本次不沿用旧版录像、原菜单、键盘和冷启动测试为新包的完整验收。
+
 ### 0.1.13 shipped regression / 发布版回归
 
 Executable SHA-256: `cdbd8310799268fb45059df358f032536688b0fdfafd20b423b227e2507ccd83`. Tested on M1 / macOS 27.2 (26B123), arm64, one 1440×900 non-notched Retina display, with Accessibility and single-file ordering access. Screen Recording was not granted to the application. The same executable is packaged in both release archives.
@@ -143,9 +156,9 @@ In 0.1.10 development, two experimental pickup-coordinate approaches failed the 
 
 ## Known limits / 已知限制
 
-The current 0.1.13 regression uses one M1, macOS 27.2, non-notched display. Older records above describe different binaries and display setups; they do not certify this candidate on multiple displays or notched MacBooks. Real login-after-reboot and energy measurements are not certified. A geometry sample is not a captured frame: it cannot prove that no transient pixel or ghost ever appeared. Never label an unrecorded motion test “flicker-free.”
+The current 0.1.14 targeted regression uses one M1, macOS 27.2, non-notched display. Older records above describe different binaries and display setups; they do not certify this candidate on multiple displays or notched MacBooks. Real login-after-reboot and energy measurements are not certified. A geometry sample is not a captured frame: it cannot prove that no transient pixel or ghost ever appeared. Never label an unrecorded motion test “flicker-free.”
 
-当前 0.1.13 回归环境为 M1、macOS 27.2、单屏无刘海。上文历史结果属于不同二进制及屏幕环境，不能沿用为当前候选的多屏、刘海验收；重启登录与能耗仍未验收。几何样本不能证明每帧都没有闪动；未录制的移动不能标注“绝不闪动”。
+当前 0.1.14 定向回归环境为 M1、macOS 27.2、单屏无刘海。上文历史结果属于不同二进制及屏幕环境，不能沿用为当前候选的多屏、刘海验收；重启登录与能耗仍未验收。几何样本不能证明每帧都没有闪动；未录制的移动不能标注“绝不闪动”。
 
 Spacing adoption without source app reopening remains unresolved. Context menus depend on source app behavior. Preview builds are not notarized, and rebuilding may invalidate existing macOS permission records.
 

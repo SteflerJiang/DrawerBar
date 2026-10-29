@@ -2,17 +2,17 @@
 
 [简体中文](README.zh-CN.md) · **English**
 
-**[Download DMG](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.13/DrawerBar-0.1.13-AppleSilicon.dmg>)** · **[Download ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.13/DrawerBar-0.1.13-arm64.zip>)** · [v0.1.13 preview notes](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.13)
+**[Download DMG](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.14/DrawerBar-0.1.14-AppleSilicon.dmg>)** · **[Download ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.14/DrawerBar-0.1.14-arm64.zip>)** · [v0.1.14 preview notes](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.14)
 
 A small drawer for your Mac's menu bar. Keep everyday icons visible and tuck less-used ones into a single-row drawer.
 
 Native SwiftUI + AppKit. Built for Apple Silicon. English and Simplified Chinese. No account, telemetry, cloud service, or third-party runtime dependencies.
 
-**Developer preview:** the source targets macOS 14+. The 0.1.13 device regression uses one M1 Mac running macOS 27.2, with one display and no notch. Earlier macOS 26 results belong to earlier binaries. Other OS versions, notched displays, and multi-display behavior are not certified for this release. See [testing and limitations](docs/TESTING.md).
+**Developer preview:** the source targets macOS 14+. The 0.1.14 device regression uses one M1 Mac running macOS 27.2, with one display and no notch. Earlier macOS 26 results belong to earlier binaries. Other OS versions, notched displays, and multi-display behavior are not certified for this release. See [testing and limitations](docs/TESTING.md).
 
 ## Download
 
-The current developer preview is **v0.1.13**. Use the **Download DMG / Download ZIP** links above, or visit its [release page](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.13). If GitHub’s Assets section stays on “Loading”, the direct links above bypass that section. GitHub’s automatic “Source code” archives contain source, not an installable app. You can also [build from source](#build-from-source).
+The current developer preview is **v0.1.14**. Use the **Download DMG / Download ZIP** links above, or visit its [release page](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.14). If GitHub’s Assets section stays on “Loading”, the direct links above bypass that section. GitHub’s automatic “Source code” archives contain source, not an installable app. You can also [build from source](#build-from-source).
 
 Previews use an ad-hoc signature. They are **not Developer ID signed or notarized by Apple**. Do not assume CI build success means native interaction tests passed. There is no automatic updater, App Store distribution, Homebrew cask, or Intel build.
 
@@ -38,7 +38,7 @@ On macOS 27, ordering asks you to select `~/Library/Group Containers/com.apple.M
 Items are grouped by app; multiple icons from one app switch together. The drawer currently uses app artwork. Using the right-hand system area temporarily releases the restriction so Notification Center remains accessible. Some Apple dynamic modules may disappear while the restriction is active and return on release; their settings are not rewritten or unloaded. Normal quit and process exit release the temporary assertion; saved ordering persists. This uses a private system interface that may change in an OS update, with runtime availability checks.
 
 - **Organize Icons:** click an icon to switch between **In the Menu Bar** and **In the Drawer**, or drag between groups. New icons stay visible by default. System items are managed in macOS System Settings.
-- **Open the drawer:** click DrawerBar's outline drawer icon in the menu bar, or press **⌘⇧Space**. Hidden icons stay in a single row. If they exceed the screen's available width, scroll horizontally; they do not wrap.
+- **Open the drawer:** click DrawerBar's outline drawer icon in the menu bar, or press **⌘⇧Space**. The drawer presents its existing icon snapshot immediately; optional artwork updates run afterward, and stale scans wait until the drawer closes. Hidden icons stay in a single row. If they exceed the screen's available width, scroll horizontally; they do not wrap.
 - **Use an icon:** left-click for its original action; right-click for its original context menu when the source app supports one. The current source temporarily brings only that target into the menu bar and returns it after its menu closes. Failure leaves an actionable error rather than silently saving a wrong category.
 - **Drawer order:** drag hidden icons within the drawer group. The context menu also offers **Move Earlier / Move Later**. To reorder visible menu bar icons, use macOS **Command-drag**.
 - **Close:** press Esc, click outside, or move the pointer away and wait for the configured delay (default 1.5 seconds). The pin keeps the drawer open. Using an original app menu suspends automatic closing.

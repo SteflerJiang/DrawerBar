@@ -2,17 +2,17 @@
 
 **简体中文** · [English](README.md)
 
-**[下载 DMG 安装包（推荐）](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.13/DrawerBar-0.1.13-AppleSilicon.dmg>)** · **[下载 ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.13/DrawerBar-0.1.13-arm64.zip>)** · [v0.1.13 预览版说明](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.13)
+**[下载 DMG 安装包（推荐）](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.14/DrawerBar-0.1.14-AppleSilicon.dmg>)** · **[下载 ZIP](<https://github.com/SteflerJiang/DrawerBar/releases/download/v0.1.14/DrawerBar-0.1.14-arm64.zip>)** · [v0.1.14 预览版说明](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.14)
 
 给 Mac 菜单栏加一个小抽屉。常用图标留在外面，偶尔用的收进单行浮栏。
 
 原生 SwiftUI + AppKit，面向 Apple Silicon，支持简体中文和英文。无账号、遥测、云服务或第三方运行时依赖。
 
-**当前为开发预览版**：源码面向 macOS 14 及以上；0.1.13 实机回归环境为 M1、macOS 27.2、单屏无刘海；历史 macOS 26 结果属于旧二进制。当前版本的其他系统、刘海屏和多屏尚未完成兼容性验收。具体范围见[测试与限制](docs/TESTING.md)。
+**当前为开发预览版**：源码面向 macOS 14 及以上；0.1.14 实机回归环境为 M1、macOS 27.2、单屏无刘海；历史 macOS 26 结果属于旧二进制。当前版本的其他系统、刘海屏和多屏尚未完成兼容性验收。具体范围见[测试与限制](docs/TESTING.md)。
 
 ## 下载
 
-当前可下载版本为 **v0.1.13 开发预览版**。直接点击页首的 **下载 DMG 安装包 / 下载 ZIP**，或进入[对应版本页](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.13)。如果 GitHub 底部的 Assets 区块一直显示 Loading，页首的直达链接仍可使用。GitHub 自动提供的“Source code”是源码压缩包，不是安装包；也可按下文[源码构建](#源码构建)。
+当前可下载版本为 **v0.1.14 开发预览版**。直接点击页首的 **下载 DMG 安装包 / 下载 ZIP**，或进入[对应版本页](https://github.com/SteflerJiang/DrawerBar/releases/tag/v0.1.14)。如果 GitHub 底部的 Assets 区块一直显示 Loading，页首的直达链接仍可使用。GitHub 自动提供的“Source code”是源码压缩包，不是安装包；也可按下文[源码构建](#源码构建)。
 
 预览版使用临时签名，**没有 Developer ID 签名，也没有经过 Apple 公证**。CI 构建通过不代表真实菜单栏交互已通过验收。目前无自动更新、App Store、Homebrew 或 Intel 版本。
 
@@ -46,6 +46,8 @@ macOS 27 排序会通过“授权菜单栏排序文件”让你选择 `~/Library
 - **键盘输入**：全局快捷键使用 Carbon 注册与被动观察，不拦截或重新投递普通按键。
 - **通用设置**：快捷键可选 **⌘⇧Space**、**⌘⇧B** 或关闭；被占用时明确提示。可开启登录时启动，深浅色跟随系统。
 - **恢复图标整理默认配置**：清除分类和浮栏顺序前需要确认；保留间距、快捷键和登录时启动设置，并保存恢复前的本机备份。
+
+点击入口先显示现有图标，图像异步更新，过期扫描推迟到浮栏关闭后。
 
 ### 浮栏外观
 
